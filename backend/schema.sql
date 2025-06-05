@@ -59,6 +59,7 @@ CREATE TABLE documents (
     file_size INTEGER NOT NULL,
     file_type document_type NOT NULL,
     tokens_required INTEGER NOT NULL,
+    is_shared BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

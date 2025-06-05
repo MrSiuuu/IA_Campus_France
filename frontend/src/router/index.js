@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Admin from '../views/Admin.vue'
+import Chat from '../views/Chat.vue'
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: Admin
+  },
+  {
+    path: '/chat',
+    name: 'Chat',
+    component: Chat
   }
 ]
 

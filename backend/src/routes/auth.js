@@ -4,10 +4,10 @@ const supabase = require('../config/supabase');
 
 // Middleware de validation pour l'inscription
 const validateRegister = (req, res, next) => {
-    const { email, password, firstName, lastName, country, educationLevel } = req.body;
+    const { email, password, first_name, last_name, country, education_level } = req.body;
     
     // Vérification des champs requis
-    if (!email || !password || !firstName || !lastName || !country || !educationLevel) {
+    if (!email || !password || !first_name || !last_name || !country || !education_level) {
         return res.status(400).json({ error: 'Tous les champs sont requis' });
     }
 
@@ -38,58 +38,46 @@ const validateLogin = (req, res, next) => {
 
 // Route d'inscription
 router.post('/register', validateRegister, async (req, res) => {
-    try {
-        const { email, password, firstName, lastName, country, educationLevel } = req.body;
+    const { email, password, first_name, last_name, country, education_level } = req.body;
 
-        // Inscription avec Supabase Auth
+    try {
+        // Créer l'utilisateur dans Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
-            password,
+            password
         });
 
         if (authError) throw authError;
 
-        // Création du profil utilisateur dans la table users
-        const { error: profileError } = await supabase
+        // Créer le profil utilisateur dans la table users
+        const { data: userData, error: userError } = await supabase
             .from('users')
-            .insert([
-                {
-                    id: authData.user.id,
-                    email: authData.user.email,
-                    first_name: firstName,
-                    last_name: lastName,
-                    country,
-                    education_level: educationLevel,
-                    role: 'student', // Par défaut, tous les nouveaux utilisateurs sont des étudiants
-                    tokens_remaining: 3 // Correction du nom de colonne
-                }
-            ]);
-
-        if (profileError) throw profileError;
-
-        res.status(201).json({ 
-            message: 'Inscription réussie', 
-            user: {
+            .insert({
                 id: authData.user.id,
-                email: authData.user.email,
-                firstName,
-                lastName,
+                email,
+                first_name,
+                last_name,
                 country,
-                educationLevel,
-                role: 'student',
-                tokens: 3
-            }
-        });
+                education_level,
+                role: 'student'
+            })
+            .select()
+            .single();
+
+        if (userError) throw userError;
+
+        res.status(201).json(userData);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Erreur lors de l\'inscription:', error);
+        res.status(500).json({ error: 'Erreur lors de l\'inscription' });
     }
 });
 
 // Route de connexion
 router.post('/login', validateLogin, async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const { email, password } = req.body;
 
+    try {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
@@ -97,7 +85,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
         if (error) throw error;
 
-        // Récupération des informations utilisateur
+        // Récupérer les informations de l'utilisateur
         const { data: userData, error: userError } = await supabase
             .from('users')
             .select('*')
@@ -106,17 +94,13 @@ router.post('/login', validateLogin, async (req, res) => {
 
         if (userError) throw userError;
 
-        res.json({ 
-            user: {
-                id: data.user.id,
-                email: data.user.email,
-                role: userData.role,
-                ...userData
-            }, 
-            session: data.session 
+        res.json({
+            user: userData,
+            session: data.session
         });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Erreur lors de la connexion:', error);
+        res.status(401).json({ error: 'Identifiants invalides' });
     }
 });
 
@@ -127,7 +111,8 @@ router.post('/logout', async (req, res) => {
         if (error) throw error;
         res.json({ message: 'Déconnexion réussie' });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Erreur lors de la déconnexion:', error);
+        res.status(500).json({ error: 'Erreur lors de la déconnexion' });
     }
 });
 
@@ -139,6 +124,81 @@ router.get('/users', async (req, res) => {
             .select('id, first_name, email, role');
         if (error) throw error;
         res.json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Route pour obtenir le profil de l'utilisateur connecté
+router.get('/profile', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Token manquant' });
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError) throw authError;
+
+        const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError) throw profileError;
+
+        res.json(profile);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Route pour obtenir les documents de l'utilisateur
+router.get('/documents', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Token manquant' });
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError) throw authError;
+
+        const { data: documents, error: documentsError } = await supabase
+            .from('documents')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (documentsError) throw documentsError;
+
+        res.json(documents);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Route pour obtenir les conversations de l'utilisateur
+router.get('/conversations', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Token manquant' });
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError) throw authError;
+
+        const { data: conversations, error: conversationsError } = await supabase
+            .from('conversations')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false });
+
+        if (conversationsError) throw conversationsError;
+
+        res.json(conversations);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

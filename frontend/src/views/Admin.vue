@@ -1,65 +1,73 @@
 <template>
-  <div class="min-h-screen flex bg-gray-100">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 text-gray-100 flex flex-col py-8 px-4">
-      <div class="mb-10 flex items-center justify-center">
-        <span class="text-2xl font-bold tracking-wide">Admin LPDG</span>
-      </div>
-      <nav class="flex-1 space-y-2">
-        <button
-          v-for="item in navItems"
-          :key="item.tab"
-          @click="setTab(item.tab)"
-          class="block w-full text-left px-4 py-3 rounded transition-colors duration-150 hover:bg-gray-800 hover:text-white"
-          :class="{
-            'bg-gray-800 text-indigo-400 font-semibold': activeTab === item.tab,
-            'text-gray-200': activeTab !== item.tab
-          }"
-        >
-          {{ item.label }}
-        </button>
-      </nav>
-      <button @click="logout" class="mt-10 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 w-full">Se déconnecter</button>
-    </aside>
+  <div class="min-h-screen flex bg-[#F5F7FA]">
+    <AdminSidebar
+      :active-tab="activeTab"
+      @change-tab="setTab"
+      @logout="logout"
+    />
 
     <!-- Main content -->
-    <main class="flex-1 p-10 bg-gray-50 min-h-screen">
-      <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div v-show="activeTab === 'dashboard'">
-          <h1 class="text-3xl font-bold mb-6 text-gray-800">Bienvenue sur le dashboard administrateur</h1>
-          <p class="mb-8 text-gray-700">Vous êtes connecté en tant qu'<strong>admin</strong>.</p>
+    <main class="flex-1 p-10 bg-[#F5F7FA] min-h-screen">
+      <div class="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Message d'erreur -->
+        <div v-if="error" class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <span class="block sm:inline">{{ error }}</span>
         </div>
-        <div v-show="activeTab === 'utilisateurs'">
-          <h2 class="text-2xl font-bold mb-6 text-gray-800">Liste des utilisateurs</h2>
-          <div v-if="usersLoading" class="text-gray-500">Chargement...</div>
-          <div v-else>
-            <table class="min-w-full bg-white rounded shadow">
-              <thead>
-                <tr>
-                  <th class="px-4 py-2 text-left text-gray-700 font-bold">Nom</th>
-                  <th class="px-4 py-2 text-left text-gray-700 font-bold">Email</th>
-                  <th class="px-4 py-2 text-left text-gray-700 font-bold">Rôle</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in users" :key="user.id" class="border-t">
-                  <td class="px-4 py-2 text-gray-800">{{ user.first_name || user.nom }}</td>
-                  <td class="px-4 py-2 text-gray-800">{{ user.email }}</td>
-                  <td class="px-4 py-2 text-gray-800">{{ user.role }}</td>
-                </tr>
-              </tbody>
-            </table>
+
+        <!-- Loading spinner -->
+        <div v-if="loading" class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6366F1]"></div>
+        </div>
+
+        <!-- Contenu -->
+        <div v-else>
+          <!-- Accueil -->
+          <div v-show="activeTab === 'accueil'">
+            <h1 class="text-3xl font-bold mb-6 text-[#1F2937]">Tableau de bord administrateur</h1>
+            <AdminStats :stats="stats" />
           </div>
-        </div>
-        <div v-show="activeTab === 'profil'">
-          <h2 class="text-2xl font-bold mb-6 text-gray-800">Mon profil</h2>
-          <div class="bg-white shadow rounded-lg p-6 flex items-center">
-            <img :src="profile.photo || 'https://via.placeholder.com/150'" alt="Avatar" class="h-16 w-16 rounded-full" />
-            <div class="ml-4">
-              <h3 class="text-lg leading-6 font-medium text-gray-900">{{ profile.nom || 'Admin' }}</h3>
-              <p class="text-sm text-gray-500">{{ profile.email }}</p>
-              <span class="text-xs text-indigo-600 font-semibold">{{ profile.role }}</span>
-            </div>
+
+          <!-- Utilisateurs -->
+          <div v-show="activeTab === 'users'">
+            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Gestion des utilisateurs</h2>
+            <UserList
+              :users="users"
+              @edit="handleEditUser"
+              @delete="handleDeleteUser"
+            />
+          </div>
+
+          <!-- Documents partagés -->
+          <div v-show="activeTab === 'documents'">
+            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Documents partagés</h2>
+            <SharedDocuments
+              :documents="sharedDocuments"
+              @add="handleAddSharedDocument"
+              @view="handleViewSharedDocument"
+              @edit="handleEditSharedDocument"
+              @delete="handleDeleteSharedDocument"
+            />
+          </div>
+
+          <!-- Base de connaissances -->
+          <div v-show="activeTab === 'knowledge'">
+            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Base de connaissances IA</h2>
+            <KnowledgeBase
+              :documents="knowledgeDocuments"
+              @add="handleAddKnowledgeDocument"
+              @view="handleViewKnowledgeDocument"
+              @edit="handleEditKnowledgeDocument"
+              @delete="handleDeleteKnowledgeDocument"
+            />
+          </div>
+
+          <!-- Logs des conversations -->
+          <div v-show="activeTab === 'chats'">
+            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Logs des conversations</h2>
+            <ChatLogs
+              :chats="chats"
+              @view="handleViewChat"
+            />
           </div>
         </div>
       </div>
@@ -70,21 +78,198 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import AdminSidebar from '../components/admin/AdminSidebar.vue'
+import AdminStats from '../components/admin/AdminStats.vue'
+import UserList from '../components/admin/UserList.vue'
+import SharedDocuments from '../components/admin/SharedDocuments.vue'
+import KnowledgeBase from '../components/admin/KnowledgeBase.vue'
+import ChatLogs from '../components/admin/ChatLogs.vue'
 
 const router = useRouter()
-const navItems = [
-  { label: 'Accueil', tab: 'dashboard' },
-  { label: 'Utilisateurs', tab: 'utilisateurs' },
-  { label: 'Profil', tab: 'profil' }
-]
-const activeTab = ref('dashboard')
+const activeTab = ref('accueil')
+
+const stats = ref({
+  studentsCount: 0,
+  messagesCount: 0,
+  tokensConsumed: 0,
+  sharedDocumentsCount: 0
+})
+
 const users = ref([])
-const usersLoading = ref(false)
-const profile = ref({ nom: 'Admin', email: 'admin@email.com', role: 'admin' })
+const sharedDocuments = ref([])
+const knowledgeDocuments = ref([])
+const chats = ref([])
+const loading = ref(false)
+const error = ref(null)
+
+function getAccessToken() {
+  const raw = localStorage.getItem('token')
+  if (!raw) return ''
+  try {
+    if (raw.trim().startsWith('{')) {
+      return JSON.parse(raw).access_token
+    }
+    return raw
+  } catch {
+    return raw
+  }
+}
+
+async function fetchStats() {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/stats', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) {
+      if (response.status === 403) {
+        router.push('/login')
+        return
+      }
+      throw new Error('Erreur lors de la récupération des statistiques')
+    }
+    stats.value = await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+    error.value = error.message
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchUsers() {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/users', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) {
+      if (response.status === 403) {
+        router.push('/login')
+        return
+      }
+      throw new Error('Erreur lors de la récupération des utilisateurs')
+    }
+    users.value = await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+    error.value = error.message
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchSharedDocuments() {
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/shared-documents', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la récupération des documents partagés')
+    sharedDocuments.value = await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+  }
+}
+
+async function fetchKnowledgeDocuments() {
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/knowledge-documents', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la récupération des documents de la base de connaissances')
+    knowledgeDocuments.value = await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+  }
+}
+
+async function fetchChats() {
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/chats', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la récupération des conversations')
+    chats.value = await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+  }
+}
 
 function setTab(tab) {
   activeTab.value = tab
-  if (tab === 'utilisateurs') fetchUsers()
+  error.value = null
+  if (tab === 'accueil') fetchStats()
+  if (tab === 'users') fetchUsers()
+  if (tab === 'documents') fetchSharedDocuments()
+  if (tab === 'knowledge') fetchKnowledgeDocuments()
+  if (tab === 'chats') fetchChats()
+}
+
+function handleEditUser(user) {
+  // TODO: Implémenter la modification d'un utilisateur
+  console.log('Modifier utilisateur:', user)
+}
+
+function handleDeleteUser(user) {
+  // TODO: Implémenter la suppression d'un utilisateur
+  console.log('Supprimer utilisateur:', user)
+}
+
+function handleAddSharedDocument() {
+  // TODO: Implémenter l'ajout d'un document partagé
+  console.log('Ajouter un document partagé')
+}
+
+function handleViewSharedDocument(doc) {
+  // TODO: Implémenter la visualisation d'un document partagé
+  console.log('Voir document partagé:', doc)
+}
+
+function handleEditSharedDocument(doc) {
+  // TODO: Implémenter la modification d'un document partagé
+  console.log('Modifier document partagé:', doc)
+}
+
+function handleDeleteSharedDocument(doc) {
+  // TODO: Implémenter la suppression d'un document partagé
+  console.log('Supprimer document partagé:', doc)
+}
+
+function handleAddKnowledgeDocument() {
+  // TODO: Implémenter l'ajout d'un document de la base de connaissances
+  console.log('Ajouter un document de la base de connaissances')
+}
+
+function handleViewKnowledgeDocument(doc) {
+  // TODO: Implémenter la visualisation d'un document de la base de connaissances
+  console.log('Voir document de la base de connaissances:', doc)
+}
+
+function handleEditKnowledgeDocument(doc) {
+  // TODO: Implémenter la modification d'un document de la base de connaissances
+  console.log('Modifier document de la base de connaissances:', doc)
+}
+
+function handleDeleteKnowledgeDocument(doc) {
+  // TODO: Implémenter la suppression d'un document de la base de connaissances
+  console.log('Supprimer document de la base de connaissances:', doc)
+}
+
+function handleViewChat(chat) {
+  // TODO: Implémenter la visualisation détaillée d'une conversation
+  console.log('Voir conversation:', chat)
 }
 
 function logout() {
@@ -93,17 +278,7 @@ function logout() {
   router.push('/login')
 }
 
-async function fetchUsers() {
-  usersLoading.value = true
-  const res = await fetch('http://localhost:3001/api/auth/users', {
-    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-  })
-  users.value = await res.json()
-  usersLoading.value = false
-}
-
 onMounted(() => {
-  // Charger le profil admin (à adapter si tu veux charger dynamiquement)
-  // fetchProfile()
+  fetchStats()
 })
 </script> 
