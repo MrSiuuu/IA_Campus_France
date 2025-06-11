@@ -16,6 +16,12 @@
             <router-link to="/dashboard" class="btn btn-ghost">Dashboard</router-link>
           </li>
           <li>
+            <router-link to="/chat" class="btn btn-ghost">
+              <span class="material-icons mr-2">chat</span>
+              Chat IA
+            </router-link>
+          </li>
+          <li>
             <button @click="handleLogout" class="btn btn-ghost">Se déconnecter</button>
           </li>
         </template>
@@ -27,14 +33,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const isAuthenticated = ref(false)
 
 onMounted(() => {
   // Vérifier si l'utilisateur est connecté
-  const token = localStorage.getItem('token')
-  isAuthenticated.value = !!token
+  isAuthenticated.value = !!userStore.token
 })
 
 const handleLogout = async () => {
@@ -42,14 +49,12 @@ const handleLogout = async () => {
     const response = await fetch('http://localhost:3001/api/auth/logout', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${userStore.token}`
       }
     })
 
     if (response.ok) {
-      // Supprimer les données de session
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      userStore.clearUser()
       isAuthenticated.value = false
       router.push('/login')
     }

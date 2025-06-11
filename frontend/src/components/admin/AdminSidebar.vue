@@ -14,7 +14,7 @@
           'text-gray-300': activeTab !== item.tab
         }"
       >
-        <span class="mr-3 text-xl">{{ item.icon }}</span>
+        <span class="material-icons mr-3 text-xl">{{ item.icon }}</span>
         {{ item.label }}
       </button>
     </nav>
@@ -33,11 +33,11 @@ const props = defineProps({
 })
 
 const navItems = [
-  { label: 'Accueil', tab: 'accueil', icon: '📊' },
-  { label: 'Utilisateurs', tab: 'users', icon: '👥' },
-  { label: 'Documents partagés', tab: 'documents', icon: '📁' },
-  { label: 'Base de connaissances', tab: 'knowledge', icon: '📚' },
-  { label: 'Logs des conversations', tab: 'chats', icon: '💬' }
+  { label: 'Accueil', tab: 'accueil', icon: 'dashboard' },
+  { label: 'Utilisateurs', tab: 'users', icon: 'group' },
+  { label: 'Documents partagés', tab: 'documents', icon: 'folder_shared' },
+  { label: 'Base de connaissances', tab: 'knowledge', icon: 'menu_book' },
+  { label: 'Logs des conversations', tab: 'chats', icon: 'chat' }
 ]
 
 defineEmits(['change-tab', 'logout'])

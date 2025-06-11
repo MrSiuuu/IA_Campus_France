@@ -16,7 +16,7 @@
             'text-gray-300': activeTab !== item.tab
           }"
         >
-          <span class="mr-3 text-xl">{{ item.icon }}</span>
+          <span class="material-icons mr-3 text-xl">{{ item.icon }}</span>
           {{ item.label }}
         </button>
       </nav>
@@ -45,6 +45,12 @@
         <div v-show="activeTab === 'profil'">
           <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mon profil</h2>
           <ProfileCard :profile="profile" @edit="handleEditProfile" />
+          <EditProfileModal
+            v-if="showEditProfileModal"
+            :profile="profile"
+            @close="showEditProfileModal = false"
+            @save="handleSaveProfile"
+          />
         </div>
 
         <!-- Documents -->
@@ -64,9 +70,15 @@
           <ConversationList
             :conversations="conversations"
             @resume="handleResumeConversation"
+            @delete="handleDeleteConversation"
           />
         </div>
       </div>
+      <UploadDocumentModal
+        :show="showUploadModal"
+        @close="showUploadModal = false"
+        @uploaded="handleUploadedDocument"
+      />
     </main>
   </div>
 </template>
@@ -77,21 +89,25 @@ import { useRouter } from 'vue-router'
 import DashboardStats from '../components/student/DashboardStats.vue'
 import DashboardActions from '../components/student/DashboardActions.vue'
 import ProfileCard from '../components/student/ProfileCard.vue'
+import EditProfileModal from '../components/student/EditProfileModal.vue'
 import DocumentList from '../components/student/DocumentList.vue'
 import ConversationList from '../components/student/ConversationList.vue'
+import UploadDocumentModal from '../components/student/UploadDocumentModal.vue'
 
 const router = useRouter()
 const activeTab = ref('accueil')
 const documentsCount = ref(0)
 const conversationsCount = ref(0)
+const showEditProfileModal = ref(false)
+const showUploadModal = ref(false)
 
 const navItems = [
-  { label: 'Accueil', tab: 'accueil', icon: '🏠' },
-  { label: 'Parler à l\'IA', tab: 'chat', icon: '🧠' },
-  { label: 'Mes tokens', tab: 'tokens', icon: '🎫' },
-  { label: 'Mon profil', tab: 'profil', icon: '👤' },
-  { label: 'Mes documents', tab: 'documents', icon: '📁' },
-  { label: 'Mes conversations', tab: 'conversations', icon: '📜' }
+  { label: 'Accueil', tab: 'accueil', icon: 'home' },
+  { label: 'Parler à l\'IA', tab: 'chat', icon: 'smart_toy' },
+  { label: 'Mes tokens', tab: 'tokens', icon: 'confirmation_number' },
+  { label: 'Mon profil', tab: 'profil', icon: 'person' },
+  { label: 'Mes documents', tab: 'documents', icon: 'folder' },
+  { label: 'Mes conversations', tab: 'conversations', icon: 'forum' }
 ]
 
 const profile = ref({
@@ -186,27 +202,115 @@ function handleNavigation(tab) {
 }
 
 function handleEditProfile() {
-  // TODO: Implémenter la modification du profil
-  console.log('Modifier le profil')
+  showEditProfileModal.value = true
+}
+
+async function handleSaveProfile(newProfile) {
+  try {
+    const response = await fetch('http://localhost:3001/api/users/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken()}`
+      },
+      body: JSON.stringify(newProfile)
+    })
+    if (!response.ok) throw new Error('Erreur lors de la mise à jour du profil')
+    showEditProfileModal.value = false
+    await fetchProfile()
+  } catch (error) {
+    alert('Erreur lors de la mise à jour du profil')
+    console.error(error)
+  }
 }
 
 function handleAddDocument() {
-  // TODO: Implémenter l'ajout de document
-  console.log('Ajouter un document')
+  showUploadModal.value = true
 }
 
-function handleViewDocument(doc) {
-  // TODO: Implémenter la visualisation du document
-  console.log('Voir le document:', doc)
+async function handleViewDocument(doc) {
+  try {
+    // 1. Récupérer le document
+    const response = await fetch(`http://localhost:3001/api/documents/${doc.id}`, {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la récupération du document')
+    const { file_url } = await response.json()
+
+    // 2. Demander l'analyse
+    const analyzeRes = await fetch(`http://localhost:3001/api/documents/${doc.id}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!analyzeRes.ok) throw new Error('Erreur lors de l\'analyse')
+    const { analysis } = await analyzeRes.json()
+
+    // 3. Rediriger vers le chat avec l'analyse
+    router.push({
+      path: '/chat',
+      query: { 
+        documentId: doc.id,
+        analysis: analysis
+      }
+    })
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert('Erreur lors de la visualisation du document')
+  }
 }
 
-function handleDeleteDocument(doc) {
-  // TODO: Implémenter la suppression du document
-  console.log('Supprimer le document:', doc)
+async function handleDeleteDocument(doc) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+    return
+  }
+
+  try {
+    const response = await fetch(`http://localhost:3001/api/documents/${doc.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la suppression')
+    await fetchDocuments() // Rafraîchir la liste
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert('Erreur lors de la suppression du document')
+  }
 }
 
 function handleResumeConversation(conv) {
   router.push('/chat')
+}
+
+function handleDeleteConversation(conv) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette conversation ?')) {
+    return;
+  }
+
+  fetch(`http://localhost:3001/api/chat/conversations/${conv.id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`
+    }
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Erreur lors de la suppression');
+    conversations.value = conversations.value.filter(c => c.id !== conv.id);
+    conversationsCount.value--;
+  })
+  .catch(error => {
+    console.error('Erreur:', error);
+    alert('Erreur lors de la suppression de la conversation');
+  });
+}
+
+function handleUploadedDocument() {
+  fetchDocuments()
 }
 
 function logout() {

@@ -56,13 +56,12 @@
             <label class="label">
               <span class="label-text">Pays d'origine</span>
             </label>
-            <input 
-              type="text" 
-              v-model="country" 
-              placeholder="Votre pays" 
-              class="input input-bordered" 
-              required
-            />
+            <select v-model="country" class="select select-bordered" required>
+              <option value="">Sélectionnez votre pays</option>
+              <option v-for="c in westAfricanCountries" :key="c.code" :value="c.name">
+                {{ c.name }}
+              </option>
+            </select>
           </div>
           <div class="form-control">
             <label class="label">
@@ -101,6 +100,22 @@ const password = ref('')
 const country = ref('')
 const educationLevel = ref('')
 
+// Liste des pays africains francophones de l'ouest
+const westAfricanCountries = [
+  { code: 'CIV', name: "Côte d'Ivoire" },
+  { code: 'SEN', name: 'Sénégal' },
+  { code: 'BFA', name: 'Burkina Faso' },
+  { code: 'MLI', name: 'Mali' },
+  { code: 'NER', name: 'Niger' },
+  { code: 'TGO', name: 'Togo' },
+  { code: 'BEN', name: 'Bénin' },
+  { code: 'GIN', name: 'Guinée' },
+  { code: 'GNB', name: 'Guinée-Bissau' },
+  { code: 'MRT', name: 'Mauritanie' },
+  { code: 'GAB', name: 'Gabon' },
+  { code: 'CMR', name: 'Cameroun' }
+]
+
 const handleRegister = async () => {
   try {
     const response = await fetch('http://localhost:3001/api/auth/register', {
@@ -111,10 +126,10 @@ const handleRegister = async () => {
       body: JSON.stringify({
         email: email.value,
         password: password.value,
-        firstName: firstName.value,
-        lastName: lastName.value,
+        first_name: firstName.value,
+        last_name: lastName.value,
         country: country.value,
-        educationLevel: educationLevel.value,
+        education_level: educationLevel.value,
       }),
     })
 

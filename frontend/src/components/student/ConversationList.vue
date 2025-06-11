@@ -6,9 +6,14 @@
           <h4 class="font-medium text-[#1F2937]">{{ conv.title }}</h4>
           <p class="text-gray-500">{{ new Date(conv.created_at).toLocaleDateString() }}</p>
         </div>
-        <button @click="$emit('resume', conv)" class="px-6 py-3 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] transition-all duration-300 shadow-md hover:shadow-lg">
-          Reprendre
-        </button>
+        <div class="flex gap-3">
+          <button @click="$emit('resume', conv)" class="px-6 py-3 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] transition-all duration-300 shadow-md hover:shadow-lg">
+            Reprendre
+          </button>
+          <button @click="$emit('delete', conv)" class="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg">
+            Supprimer
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -22,5 +27,5 @@ defineProps({
   }
 })
 
-defineEmits(['resume'])
+defineEmits(['resume', 'delete'])
 </script> 
