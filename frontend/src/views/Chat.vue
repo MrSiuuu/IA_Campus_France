@@ -82,16 +82,6 @@
 
       <!-- Zone de saisie des messages -->
       <form class="p-4 flex gap-2 border-t border-base-100 bg-base-300" @submit.prevent="sendMessage">
-        <label class="btn btn-square btn-ghost" title="Joindre un document">
-          <span class="material-icons">attach_file</span>
-          <input 
-            type="file" 
-            class="hidden" 
-            accept=".pdf,.doc,.docx"
-            @change="handleFileUpload"
-            :disabled="isLoading"
-          />
-        </label>
         <input 
           v-model="input" 
           type="text" 
@@ -347,72 +337,6 @@ watch(messages, () => {
  */
 function goDashboard() {
   router.push('/dashboard')
-}
-
-/**
- * Gère l'upload d'un document et son analyse
- * @param {Event} event - Événement de changement de fichier
- */
-async function handleFileUpload(event) {
-  const file = event.target.files[0]
-  if (!file) return
-
-  try {
-    isLoading.value = true
-
-    // 1. Upload du document
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('file_type', file.name.endsWith('.pdf') ? 'cv' : 'letter')
-
-    const uploadRes = await fetch('http://localhost:3001/api/documents/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${userStore.token}`
-      },
-      body: formData
-    })
-
-    if (!uploadRes.ok) throw new Error('Erreur lors de l\'upload')
-    const { id: documentId } = await uploadRes.json()
-
-    // 2. Ajouter un message utilisateur
-    messages.value.push({
-      id: Date.now(),
-      role: 'user',
-      content: `J'ai uploadé un document : ${file.name}`
-    })
-
-    // 3. Demander l'analyse
-    const analyzeRes = await fetch(`http://localhost:3001/api/documents/${documentId}/analyze`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${userStore.token}`
-      }
-    })
-
-    if (!analyzeRes.ok) throw new Error('Erreur lors de l\'analyse')
-    const { analysis } = await analyzeRes.json()
-
-    // 4. Ajouter la réponse de l'IA
-    messages.value.push({
-      id: Date.now() + 1,
-      role: 'assistant',
-      content: analysis
-    })
-
-    scrollToBottom()
-  } catch (error) {
-    console.error('Erreur:', error)
-    messages.value.push({
-      id: Date.now(),
-      role: 'assistant',
-      content: 'Désolé, une erreur est survenue lors de l\'analyse du document.'
-    })
-  } finally {
-    isLoading.value = false
-    event.target.value = '' // Réinitialiser l'input file
-  }
 }
 </script>
 

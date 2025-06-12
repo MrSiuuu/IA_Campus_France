@@ -37,18 +37,6 @@
             />
           </div>
 
-          <!-- Documents partagés -->
-          <div v-show="activeTab === 'documents'">
-            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Documents partagés</h2>
-            <SharedDocuments
-              :documents="sharedDocuments"
-              @add="handleAddSharedDocument"
-              @view="handleViewSharedDocument"
-              @edit="handleEditSharedDocument"
-              @delete="handleDeleteSharedDocument"
-            />
-          </div>
-
           <!-- Base de connaissances -->
           <div v-show="activeTab === 'knowledge'">
             <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Base de connaissances IA</h2>
@@ -81,7 +69,6 @@ import { useRouter } from 'vue-router'
 import AdminSidebar from '../components/admin/AdminSidebar.vue'
 import AdminStats from '../components/admin/AdminStats.vue'
 import UserList from '../components/admin/UserList.vue'
-import SharedDocuments from '../components/admin/SharedDocuments.vue'
 import KnowledgeBase from '../components/admin/KnowledgeBase.vue'
 import ChatLogs from '../components/admin/ChatLogs.vue'
 
@@ -96,7 +83,6 @@ const stats = ref({
 })
 
 const users = ref([])
-const sharedDocuments = ref([])
 const knowledgeDocuments = ref([])
 const chats = ref([])
 const loading = ref(false)
@@ -165,20 +151,6 @@ async function fetchUsers() {
   }
 }
 
-async function fetchSharedDocuments() {
-  try {
-    const response = await fetch('http://localhost:3001/api/admin/shared-documents', {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des documents partagés')
-    sharedDocuments.value = await response.json()
-  } catch (error) {
-    console.error('Erreur:', error)
-  }
-}
-
 async function fetchKnowledgeDocuments() {
   try {
     const response = await fetch('http://localhost:3001/api/admin/knowledge-documents', {
@@ -212,7 +184,6 @@ function setTab(tab) {
   error.value = null
   if (tab === 'accueil') fetchStats()
   if (tab === 'users') fetchUsers()
-  if (tab === 'documents') fetchSharedDocuments()
   if (tab === 'knowledge') fetchKnowledgeDocuments()
   if (tab === 'chats') fetchChats()
 }
@@ -225,26 +196,6 @@ function handleEditUser(user) {
 function handleDeleteUser(user) {
   // TODO: Implémenter la suppression d'un utilisateur
   console.log('Supprimer utilisateur:', user)
-}
-
-function handleAddSharedDocument() {
-  // TODO: Implémenter l'ajout d'un document partagé
-  console.log('Ajouter un document partagé')
-}
-
-function handleViewSharedDocument(doc) {
-  // TODO: Implémenter la visualisation d'un document partagé
-  console.log('Voir document partagé:', doc)
-}
-
-function handleEditSharedDocument(doc) {
-  // TODO: Implémenter la modification d'un document partagé
-  console.log('Modifier document partagé:', doc)
-}
-
-function handleDeleteSharedDocument(doc) {
-  // TODO: Implémenter la suppression d'un document partagé
-  console.log('Supprimer document partagé:', doc)
 }
 
 function handleAddKnowledgeDocument() {

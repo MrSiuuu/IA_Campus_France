@@ -198,12 +198,5 @@ watch(() => props.stats, (newStats) => {
     charts.tokens.data.datasets[0].data = newStats.tokenDistribution.map(d => d.total_tokens)
     charts.tokens.update()
   }
-
-  // Mettre à jour le graphique des documents
-  if (newStats.documentTypes) {
-    charts.documents.data.labels = newStats.documentTypes.map(d => d.document_type)
-    charts.documents.data.datasets[0].data = newStats.documentTypes.map(d => d.count)
-    charts.documents.update()
-  }
 }, { deep: true })
 </script> 

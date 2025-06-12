@@ -53,17 +53,6 @@
           />
         </div>
 
-        <!-- Documents -->
-        <div v-show="activeTab === 'documents'">
-          <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mes documents</h2>
-          <DocumentList
-            :documents="documents"
-            @add="handleAddDocument"
-            @view="handleViewDocument"
-            @delete="handleDeleteDocument"
-          />
-        </div>
-
         <!-- Conversations -->
         <div v-show="activeTab === 'conversations'">
           <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mes conversations</h2>
@@ -74,11 +63,6 @@
           />
         </div>
       </div>
-      <UploadDocumentModal
-        :show="showUploadModal"
-        @close="showUploadModal = false"
-        @uploaded="handleUploadedDocument"
-      />
     </main>
   </div>
 </template>
@@ -90,23 +74,19 @@ import DashboardStats from '../components/student/DashboardStats.vue'
 import DashboardActions from '../components/student/DashboardActions.vue'
 import ProfileCard from '../components/student/ProfileCard.vue'
 import EditProfileModal from '../components/student/EditProfileModal.vue'
-import DocumentList from '../components/student/DocumentList.vue'
 import ConversationList from '../components/student/ConversationList.vue'
-import UploadDocumentModal from '../components/student/UploadDocumentModal.vue'
 
 const router = useRouter()
 const activeTab = ref('accueil')
 const documentsCount = ref(0)
 const conversationsCount = ref(0)
 const showEditProfileModal = ref(false)
-const showUploadModal = ref(false)
 
 const navItems = [
   { label: 'Accueil', tab: 'accueil', icon: 'home' },
   { label: 'Parler à l\'IA', tab: 'chat', icon: 'smart_toy' },
   { label: 'Mes tokens', tab: 'tokens', icon: 'confirmation_number' },
   { label: 'Mon profil', tab: 'profil', icon: 'person' },
-  { label: 'Mes documents', tab: 'documents', icon: 'folder' },
   { label: 'Mes conversations', tab: 'conversations', icon: 'forum' }
 ]
 
@@ -119,7 +99,6 @@ const profile = ref({
   tokens_remaining: 0
 })
 
-const documents = ref([])
 const conversations = ref([])
 
 function getAccessToken() {
@@ -150,22 +129,6 @@ async function fetchProfile() {
   }
 }
 
-async function fetchDocuments() {
-  try {
-    const response = await fetch('http://localhost:3001/api/auth/documents', {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des documents')
-    const data = await response.json()
-    documents.value = data
-    documentsCount.value = data.length
-  } catch (error) {
-    console.error('Erreur:', error)
-  }
-}
-
 async function fetchConversations() {
   try {
     const response = await fetch('http://localhost:3001/api/auth/conversations', {
@@ -188,7 +151,6 @@ function setTab(tab) {
     return
   }
   activeTab.value = tab
-  if (tab === 'documents') fetchDocuments()
   if (tab === 'conversations') fetchConversations()
   if (tab === 'profil') fetchProfile()
 }
@@ -224,65 +186,6 @@ async function handleSaveProfile(newProfile) {
   }
 }
 
-function handleAddDocument() {
-  showUploadModal.value = true
-}
-
-async function handleViewDocument(doc) {
-  try {
-    // 1. Récupérer le document
-    const response = await fetch(`http://localhost:3001/api/documents/${doc.id}`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération du document')
-    const { file_url } = await response.json()
-
-    // 2. Demander l'analyse
-    const analyzeRes = await fetch(`http://localhost:3001/api/documents/${doc.id}/analyze`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!analyzeRes.ok) throw new Error('Erreur lors de l\'analyse')
-    const { analysis } = await analyzeRes.json()
-
-    // 3. Rediriger vers le chat avec l'analyse
-    router.push({
-      path: '/chat',
-      query: { 
-        documentId: doc.id,
-        analysis: analysis
-      }
-    })
-  } catch (error) {
-    console.error('Erreur:', error)
-    alert('Erreur lors de la visualisation du document')
-  }
-}
-
-async function handleDeleteDocument(doc) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-    return
-  }
-
-  try {
-    const response = await fetch(`http://localhost:3001/api/documents/${doc.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la suppression')
-    await fetchDocuments() // Rafraîchir la liste
-  } catch (error) {
-    console.error('Erreur:', error)
-    alert('Erreur lors de la suppression du document')
-  }
-}
-
 function handleResumeConversation(conv) {
   router.push('/chat')
 }
@@ -309,10 +212,6 @@ function handleDeleteConversation(conv) {
   });
 }
 
-function handleUploadedDocument() {
-  fetchDocuments()
-}
-
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -321,7 +220,6 @@ function logout() {
 
 onMounted(() => {
   fetchProfile()
-  fetchDocuments()
   fetchConversations()
 })
 </script> 
