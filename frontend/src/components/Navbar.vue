@@ -31,19 +31,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
+const auth = useAuthStore()
+const { isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
-const userStore = useUserStore()
-const isAuthenticated = ref(false)
-
-onMounted(() => {
-  // Vérifier si l'utilisateur est connecté
-  isAuthenticated.value = !!userStore.token
-})
-
 const handleLogout = async () => {
   try {
     const response = await fetch('http://localhost:3001/api/auth/logout', {
@@ -54,8 +49,6 @@ const handleLogout = async () => {
     })
 
     if (response.ok) {
-      userStore.clearUser()
-      isAuthenticated.value = false
       router.push('/login')
     }
   } catch (error) {

@@ -45,10 +45,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const email = ref('')
 const password = ref('')
+const auth = useAuthStore()
 
 const handleLogin = async () => {
   try {
@@ -66,9 +68,8 @@ const handleLogin = async () => {
     const data = await response.json()
 
     if (response.ok) {
-      // Stocker le token et les infos utilisateur
-      localStorage.setItem('token', data.session.access_token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Stocker le token et les infos utilisateur via le store
+      auth.login(data.session.access_token, data.user)
       
       if (data.user.role === 'admin') {
         alert('Bienvenue administrateur !')
