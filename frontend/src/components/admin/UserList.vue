@@ -33,7 +33,6 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Niveau d'études</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tokens restants</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -75,20 +74,6 @@
               >
                 {{ user.role === 'student' ? 'Étudiant' : 'Administrateur' }}
               </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button
-                @click="$emit('edit', user)"
-                class="text-[#6366F1] hover:text-[#4F46E5] mr-3"
-              >
-                ✏️ Modifier
-              </button>
-              <button
-                @click="$emit('delete', user)"
-                class="text-red-600 hover:text-red-900"
-              >
-                🗑️ Supprimer
-              </button>
             </td>
           </tr>
         </tbody>

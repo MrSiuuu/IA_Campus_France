@@ -117,7 +117,18 @@ async function fetchStats() {
       }
       throw new Error('Erreur lors de la récupération des statistiques')
     }
-    stats.value = await response.json()
+    const data = await response.json()
+    stats.value = {
+      studentsCount: data.totalStudents,
+      messagesCount: data.totalMessages,
+      tokensConsumed: data.totalTokens,
+      sharedDocumentsCount: data.sharedDocuments,
+      monthlyStudents: data.monthlyStudents,
+      messagesByDay: data.messagesByDay,
+      documentTypes: data.documentTypes,
+      userActivity: data.userActivity,
+      tokenDistribution: data.tokenDistribution
+    }
   } catch (error) {
     console.error('Erreur:', error)
     error.value = error.message

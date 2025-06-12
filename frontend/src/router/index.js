@@ -44,4 +44,32 @@ const router = createRouter({
   routes
 })
 
+router.beforeEach((to, from, next) => {
+  try {
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      if (to.path === '/dashboard' || to.path === '/admin' || to.path === '/chat') {
+        next('/login')
+        return
+      }
+      next()
+      return
+    }
+
+    const user = JSON.parse(userStr)
+    if (to.path === '/admin' && (!user || user.role !== 'admin')) {
+      next('/dashboard')
+    } else if (to.path === '/dashboard' && user && user.role === 'admin') {
+      next('/admin')
+    } else {
+      next()
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification de l\'authentification:', error)
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    next('/login')
+  }
+})
+
 export default router 

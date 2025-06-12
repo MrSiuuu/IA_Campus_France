@@ -46,44 +46,42 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const email = ref('')
 const password = ref('')
 const auth = useAuthStore()
+const userStore = useUserStore()
 
 const handleLogin = async () => {
   try {
     const response = await fetch('http://localhost:3001/api/auth/login', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         email: email.value,
-        password: password.value,
-      }),
+        password: password.value
+      })
     })
 
-    const data = await response.json()
-
     if (response.ok) {
-      // Stocker le token et les infos utilisateur via le store
-      auth.login(data.session.access_token, data.user)
-      
+      const data = await response.json()
+      auth.login(data.session, data.user)
       if (data.user.role === 'admin') {
-        alert('Bienvenue administrateur !')
         router.push('/admin')
       } else {
-        alert('Bienvenue étudiant !')
         router.push('/dashboard')
       }
     } else {
-      alert(data.error || 'Erreur lors de la connexion')
+      const error = await response.json()
+      alert(error.message || 'Erreur de connexion')
     }
   } catch (error) {
-    console.error('Erreur:', error)
-    alert('Erreur de connexion')
+    console.error('Erreur lors de la connexion:', error)
+    alert('Erreur lors de la connexion')
   }
 }
 </script> 

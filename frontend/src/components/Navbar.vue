@@ -37,8 +37,10 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
 const auth = useAuthStore()
+const userStore = useUserStore()
 const { isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
+
 const handleLogout = async () => {
   try {
     const response = await fetch('http://localhost:3001/api/auth/logout', {
@@ -49,6 +51,8 @@ const handleLogout = async () => {
     })
 
     if (response.ok) {
+      auth.logout()
+      userStore.clearUser()
       router.push('/login')
     }
   } catch (error) {

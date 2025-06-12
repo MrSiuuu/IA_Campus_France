@@ -102,21 +102,21 @@ const profile = ref({
 const conversations = ref([])
 
 function getAccessToken() {
-  const raw = localStorage.getItem('token')
-  if (!raw) return ''
+  const token = localStorage.getItem('token')
+  if (!token) return ''
+  
   try {
-    if (raw.trim().startsWith('{')) {
-      return JSON.parse(raw).access_token
-    }
-    return raw
-  } catch {
-    return raw
+    const session = typeof token === 'string' ? JSON.parse(token) : token
+    return session?.access_token || ''
+  } catch (error) {
+    console.error('Erreur lors de la récupération du token:', error)
+    return ''
   }
 }
 
 async function fetchProfile() {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/profile', {
+    const response = await fetch('http://localhost:3001/api/users/profile', {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -131,7 +131,7 @@ async function fetchProfile() {
 
 async function fetchConversations() {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/conversations', {
+    const response = await fetch('http://localhost:3001/api/chat/conversations', {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }

@@ -8,9 +8,19 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader.split(' ')[1]
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-    if (error) throw error
-    if (!user) return res.status(401).json({ error: 'Token invalide' })
+    // Vérifier si le token est valide
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+
+    // Vérifier si le token correspond à la session
+    if (!session || session.access_token !== token) {
+      return res.status(401).json({ error: 'Session invalide' })
+    }
+
+    // Récupérer les informations de l'utilisateur
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    if (userError) throw userError
+    if (!user) return res.status(401).json({ error: 'Utilisateur non trouvé' })
     
     req.user = user
     next()

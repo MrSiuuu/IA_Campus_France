@@ -2,25 +2,61 @@ import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    isAuthenticated: !!localStorage.getItem('token'),
-    user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null,
+    isAuthenticated: false,
+    user: null,
+    session: null
   }),
   actions: {
-    login(token, user) {
-      localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(user))
-      this.isAuthenticated = true
+    login(session, user) {
+      if (!session || !session.access_token) {
+        console.error('Session invalide')
+        return
+      }
+      
+      // Stocker la session et l'utilisateur
+      this.session = session
       this.user = user
+      this.isAuthenticated = true
+      
+      // Stocker dans le localStorage
+      localStorage.setItem('token', JSON.stringify(session))
+      localStorage.setItem('user', JSON.stringify(user))
     },
     logout() {
+      // Nettoyer le state
+      this.session = null
+      this.user = null
+      this.isAuthenticated = false
+      
+      // Nettoyer le localStorage
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      this.isAuthenticated = false
-      this.user = null
     },
     checkAuth() {
-      this.isAuthenticated = !!localStorage.getItem('token')
-      this.user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null
+      try {
+        const token = localStorage.getItem('token')
+        const user = localStorage.getItem('user')
+        
+        if (!token || !user) {
+          this.logout()
+          return
+        }
+        
+        const session = JSON.parse(token)
+        const parsedUser = JSON.parse(user)
+        
+        if (!session.access_token) {
+          this.logout()
+          return
+        }
+        
+        this.session = session
+        this.user = parsedUser
+        this.isAuthenticated = true
+      } catch (error) {
+        console.error('Erreur lors de la vérification de l\'authentification:', error)
+        this.logout()
+      }
     }
   }
 }) 

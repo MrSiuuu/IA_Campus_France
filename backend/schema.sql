@@ -176,4 +176,11 @@ CREATE POLICY "Users can view their own payments"
 CREATE POLICY "Authenticated users can read FAQ docs"
     ON faq_docs FOR SELECT
     TO authenticated
-    USING (true); 
+    USING (true);
+
+-- Nouvelle politique : un admin voit tout, un utilisateur normal ne voit que lui-même
+CREATE POLICY "Admin or self can view users"
+    ON users FOR SELECT
+    USING (
+      role = 'admin' OR id = auth.uid()
+    ); 
