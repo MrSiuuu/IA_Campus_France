@@ -25,17 +25,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
+const auth = useAuthStore()
+const { isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
-const isAuthenticated = ref(false)
-
-onMounted(() => {
-  // Vérifier si l'utilisateur est connecté
-  const token = localStorage.getItem('token')
-  isAuthenticated.value = !!token
-})
 
 const handleLogout = async () => {
   try {
@@ -47,10 +43,7 @@ const handleLogout = async () => {
     })
 
     if (response.ok) {
-      // Supprimer les données de session
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      isAuthenticated.value = false
+      auth.logout()
       router.push('/login')
     }
   } catch (error) {
