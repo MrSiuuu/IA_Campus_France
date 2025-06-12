@@ -70,6 +70,10 @@ router.post('/messages', async (req, res) => {
   try {
     const { conversation_id, content } = req.body;
 
+    if (!conversation_id || !content) {
+      return res.status(400).json({ error: 'conversation_id et content sont requis' });
+    }
+
     // Vérification des tokens disponibles
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -109,7 +113,7 @@ router.post('/messages', async (req, res) => {
     const tokensUsed = completion.usage.total_tokens;
 
     // Sauvegarde du message utilisateur
-    await supabase
+    const { error: userMessageError } = await supabase
       .from('messages')
       .insert([{
         conversation_id,
@@ -119,8 +123,10 @@ router.post('/messages', async (req, res) => {
         tokens_used: tokensUsed
       }]);
 
+    if (userMessageError) throw userMessageError;
+
     // Sauvegarde de la réponse de l'assistant
-    await supabase
+    const { error: assistantMessageError } = await supabase
       .from('messages')
       .insert([{
         conversation_id,
@@ -130,11 +136,15 @@ router.post('/messages', async (req, res) => {
         tokens_used: tokensUsed
       }]);
 
+    if (assistantMessageError) throw assistantMessageError;
+
     // Mise à jour des tokens restants
-    await supabase
+    const { error: updateTokensError } = await supabase
       .from('users')
       .update({ tokens_remaining: userData.tokens_remaining - tokensUsed })
       .eq('id', req.user.id);
+
+    if (updateTokensError) throw updateTokensError;
 
     res.json({
       message: assistantMessage,

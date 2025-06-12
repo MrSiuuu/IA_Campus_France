@@ -108,12 +108,14 @@
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useAuthStore } from '../stores/auth'
 
 /**
  * Initialisation des variables et stores
  */
 const router = useRouter()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 const messagesContainer = ref(null)
 const conversations = ref([])
 const activeConv = ref(null)
@@ -121,6 +123,8 @@ const messages = ref([])
 const input = ref('')
 const isLoading = ref(false)
 const tokensRemaining = ref(0)
+
+const API_URL = 'http://localhost:3001/api'
 
 /**
  * Chargement initial des données
@@ -138,11 +142,12 @@ onMounted(async () => {
  */
 async function loadUserTokens() {
   try {
-    const response = await fetch('/api/users/tokens', {
+    const response = await fetch(`${API_URL}/users/tokens`, {
       headers: {
-        'Authorization': `Bearer ${userStore.token}`
+        'Authorization': `Bearer ${authStore.session?.access_token}`
       }
     })
+    if (!response.ok) throw new Error('Erreur lors du chargement des tokens')
     const data = await response.json()
     tokensRemaining.value = data.tokens_remaining
   } catch (error) {
@@ -157,11 +162,12 @@ async function loadUserTokens() {
  */
 async function loadConversations() {
   try {
-    const response = await fetch('/api/chat/conversations', {
+    const response = await fetch(`${API_URL}/chat/conversations`, {
       headers: {
-        'Authorization': `Bearer ${userStore.token}`
+        'Authorization': `Bearer ${authStore.session?.access_token}`
       }
     })
+    if (!response.ok) throw new Error('Erreur lors du chargement des conversations')
     const data = await response.json()
     conversations.value = data.map(conv => ({ ...conv, isEditing: false }))
     if (data.length > 0) {
@@ -179,11 +185,12 @@ async function loadConversations() {
 async function selectConversation(id) {
   activeConv.value = id
   try {
-    const response = await fetch(`/api/chat/conversations/${id}/messages`, {
+    const response = await fetch(`${API_URL}/chat/conversations/${id}/messages`, {
       headers: {
-        'Authorization': `Bearer ${userStore.token}`
+        'Authorization': `Bearer ${authStore.session?.access_token}`
       }
     })
+    if (!response.ok) throw new Error('Erreur lors du chargement des messages')
     const data = await response.json()
     messages.value = data
     scrollToBottom()
@@ -198,20 +205,23 @@ async function selectConversation(id) {
  */
 async function newConversation() {
   try {
-    const response = await fetch('/api/chat/conversations', {
+    const response = await fetch(`${API_URL}/chat/conversations`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userStore.token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.session?.access_token}`
       },
       body: JSON.stringify({ title: 'Nouvelle conversation' })
-    })
-    const data = await response.json()
-    conversations.value.unshift({ ...data, isEditing: false })
-    activeConv.value = data.id
-    messages.value = []
+    });
+
+    if (!response.ok) throw new Error('Erreur lors de la création de la conversation');
+    
+    const data = await response.json();
+    conversations.value.unshift({ ...data, isEditing: false });
+    activeConv.value = data.id;
+    messages.value = [];
   } catch (error) {
-    console.error('Erreur lors de la création de la conversation:', error)
+    console.error('Erreur lors de la création de la conversation:', error);
   }
 }
 
@@ -220,64 +230,56 @@ async function newConversation() {
  * Appelle l'API POST /api/chat/messages
  */
 async function sendMessage() {
-  if (!input.value.trim() || isLoading.value || tokensRemaining.value <= 0) return
+  if (!input.value.trim() || isLoading.value || tokensRemaining.value <= 0) return;
 
-  // Si aucune conversation n'est active, on en crée une automatiquement
+  // Si aucune conversation n'est active, on en crée une
   if (!activeConv.value) {
-    // Générer un titre dynamique (ex : "Discussion du 10/06/2025 14:30")
-    const now = new Date();
-    const titre = `Discussion du ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-    try {
-      const response = await fetch('/api/chat/conversations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ title: titre })
-      })
-      const data = await response.json();
-      conversations.value.unshift({ ...data, isEditing: false });
-      activeConv.value = data.id;
-      messages.value = [];
-    } catch (error) {
-      console.error('Erreur lors de la création automatique de la conversation:', error);
-      return;
-    }
+    await newConversation();
+    if (!activeConv.value) return; // Si la création a échoué
   }
 
-  const message = input.value
-  input.value = ''
-  isLoading.value = true
+  const message = input.value;
+  input.value = '';
+  isLoading.value = true;
 
   try {
-    const response = await fetch('/api/chat/messages', {
+    console.log('Envoi du message:', {
+      conversation_id: activeConv.value,
+      content: message
+    });
+
+    const response = await fetch(`${API_URL}/chat/messages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userStore.token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.session?.access_token}`
       },
       body: JSON.stringify({
         conversation_id: activeConv.value,
         content: message
       })
-    })
+    });
 
-    const data = await response.json()
-    if (response.ok) {
-      messages.value.push(
-        { role: 'user', content: message },
-        { role: 'assistant', content: data.message }
-      )
-      tokensRemaining.value = data.tokens_remaining
-      scrollToBottom()
-    } else {
-      throw new Error(data.error)
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erreur lors de l\'envoi du message');
     }
+    
+    const data = await response.json();
+    console.log('Réponse reçue:', data);
+
+    messages.value.push(
+      { role: 'user', content: message },
+      { role: 'assistant', content: data.message }
+    );
+    tokensRemaining.value = data.tokens_remaining;
+    scrollToBottom();
   } catch (error) {
-    console.error('Erreur lors de l\'envoi du message:', error)
+    console.error('Erreur lors de l\'envoi du message:', error);
+    input.value = message; // Restaurer le message en cas d'erreur
+    alert(error.message); // Afficher l'erreur à l'utilisateur
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
 }
 
@@ -286,10 +288,11 @@ async function sendMessage() {
  * Utilisé après l'ajout de nouveaux messages
  */
 async function scrollToBottom() {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  });
 }
 
 /**

@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar bg-base-100 shadow-lg">
+  <div class="navbar bg-base-100 shadow-lg min-h-0 py-0">
     <div class="container mx-auto flex items-center justify-between gap-4">
       <router-link to="/" class="btn btn-ghost text-xl">IA Campus France</router-link>
       <ul class="menu menu-horizontal">
