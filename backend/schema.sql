@@ -161,6 +161,12 @@ CREATE POLICY "Users can upload their own documents"
     ON documents FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+-- Autoriser le rôle service_role à insérer des documents
+CREATE POLICY "Service can insert documents"
+    ON documents FOR INSERT
+    TO service_role
+    WITH CHECK (true);
+
 -- Payments
 CREATE POLICY "Users can view their own payments"
     ON payments FOR SELECT

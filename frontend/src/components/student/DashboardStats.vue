@@ -7,10 +7,6 @@
         <span class="text-[#6366F1] font-bold text-lg">{{ tokens }}</span>
       </div>
       <div class="flex justify-between items-center">
-        <span class="text-gray-600">Documents uploadés</span>
-        <span class="text-[#6366F1] font-bold text-lg">{{ documentsCount }}</span>
-      </div>
-      <div class="flex justify-between items-center">
         <span class="text-gray-600">Conversations</span>
         <span class="text-[#6366F1] font-bold text-lg">{{ conversationsCount }}</span>
       </div>
@@ -21,10 +17,6 @@
 <script setup>
 defineProps({
   tokens: {
-    type: Number,
-    required: true
-  },
-  documentsCount: {
     type: Number,
     required: true
   },

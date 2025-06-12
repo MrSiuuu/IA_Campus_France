@@ -16,7 +16,7 @@
             'text-gray-300': activeTab !== item.tab
           }"
         >
-          <span class="mr-3 text-xl">{{ item.icon }}</span>
+          <span class="material-icons mr-3 text-xl">{{ item.icon }}</span>
           {{ item.label }}
         </button>
       </nav>
@@ -45,16 +45,11 @@
         <div v-show="activeTab === 'profil'">
           <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mon profil</h2>
           <ProfileCard :profile="profile" @edit="handleEditProfile" />
-        </div>
-
-        <!-- Documents -->
-        <div v-show="activeTab === 'documents'">
-          <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mes documents</h2>
-          <DocumentList
-            :documents="documents"
-            @add="handleAddDocument"
-            @view="handleViewDocument"
-            @delete="handleDeleteDocument"
+          <EditProfileModal
+            v-if="showEditProfileModal"
+            :profile="profile"
+            @close="showEditProfileModal = false"
+            @save="handleSaveProfile"
           />
         </div>
 
@@ -64,6 +59,7 @@
           <ConversationList
             :conversations="conversations"
             @resume="handleResumeConversation"
+            @delete="handleDeleteConversation"
           />
         </div>
       </div>
@@ -77,21 +73,21 @@ import { useRouter } from 'vue-router'
 import DashboardStats from '../components/student/DashboardStats.vue'
 import DashboardActions from '../components/student/DashboardActions.vue'
 import ProfileCard from '../components/student/ProfileCard.vue'
-import DocumentList from '../components/student/DocumentList.vue'
+import EditProfileModal from '../components/student/EditProfileModal.vue'
 import ConversationList from '../components/student/ConversationList.vue'
 
 const router = useRouter()
 const activeTab = ref('accueil')
 const documentsCount = ref(0)
 const conversationsCount = ref(0)
+const showEditProfileModal = ref(false)
 
 const navItems = [
-  { label: 'Accueil', tab: 'accueil', icon: '🏠' },
-  { label: 'Parler à l\'IA', tab: 'chat', icon: '🧠' },
-  { label: 'Mes tokens', tab: 'tokens', icon: '🎫' },
-  { label: 'Mon profil', tab: 'profil', icon: '👤' },
-  { label: 'Mes documents', tab: 'documents', icon: '📁' },
-  { label: 'Mes conversations', tab: 'conversations', icon: '📜' }
+  { label: 'Accueil', tab: 'accueil', icon: 'home' },
+  { label: 'Parler à l\'IA', tab: 'chat', icon: 'smart_toy' },
+  { label: 'Mes tokens', tab: 'tokens', icon: 'confirmation_number' },
+  { label: 'Mon profil', tab: 'profil', icon: 'person' },
+  { label: 'Mes conversations', tab: 'conversations', icon: 'forum' }
 ]
 
 const profile = ref({
@@ -103,7 +99,6 @@ const profile = ref({
   tokens_remaining: 0
 })
 
-const documents = ref([])
 const conversations = ref([])
 
 function getAccessToken() {
@@ -134,22 +129,6 @@ async function fetchProfile() {
   }
 }
 
-async function fetchDocuments() {
-  try {
-    const response = await fetch('http://localhost:3001/api/auth/documents', {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des documents')
-    const data = await response.json()
-    documents.value = data
-    documentsCount.value = data.length
-  } catch (error) {
-    console.error('Erreur:', error)
-  }
-}
-
 async function fetchConversations() {
   try {
     const response = await fetch('http://localhost:3001/api/auth/conversations', {
@@ -172,7 +151,6 @@ function setTab(tab) {
     return
   }
   activeTab.value = tab
-  if (tab === 'documents') fetchDocuments()
   if (tab === 'conversations') fetchConversations()
   if (tab === 'profil') fetchProfile()
 }
@@ -186,27 +164,52 @@ function handleNavigation(tab) {
 }
 
 function handleEditProfile() {
-  // TODO: Implémenter la modification du profil
-  console.log('Modifier le profil')
+  showEditProfileModal.value = true
 }
 
-function handleAddDocument() {
-  // TODO: Implémenter l'ajout de document
-  console.log('Ajouter un document')
-}
-
-function handleViewDocument(doc) {
-  // TODO: Implémenter la visualisation du document
-  console.log('Voir le document:', doc)
-}
-
-function handleDeleteDocument(doc) {
-  // TODO: Implémenter la suppression du document
-  console.log('Supprimer le document:', doc)
+async function handleSaveProfile(newProfile) {
+  try {
+    const response = await fetch('http://localhost:3001/api/users/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken()}`
+      },
+      body: JSON.stringify(newProfile)
+    })
+    if (!response.ok) throw new Error('Erreur lors de la mise à jour du profil')
+    showEditProfileModal.value = false
+    await fetchProfile()
+  } catch (error) {
+    alert('Erreur lors de la mise à jour du profil')
+    console.error(error)
+  }
 }
 
 function handleResumeConversation(conv) {
   router.push('/chat')
+}
+
+function handleDeleteConversation(conv) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette conversation ?')) {
+    return;
+  }
+
+  fetch(`http://localhost:3001/api/chat/conversations/${conv.id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`
+    }
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Erreur lors de la suppression');
+    conversations.value = conversations.value.filter(c => c.id !== conv.id);
+    conversationsCount.value--;
+  })
+  .catch(error => {
+    console.error('Erreur:', error);
+    alert('Erreur lors de la suppression de la conversation');
+  });
 }
 
 function logout() {
@@ -217,7 +220,6 @@ function logout() {
 
 onMounted(() => {
   fetchProfile()
-  fetchDocuments()
   fetchConversations()
 })
 </script> 

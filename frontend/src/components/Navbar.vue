@@ -16,6 +16,12 @@
             <router-link to="/dashboard" class="btn btn-ghost">Dashboard</router-link>
           </li>
           <li>
+            <router-link to="/chat" class="btn btn-ghost">
+              <span class="material-icons mr-2">chat</span>
+              Chat IA
+            </router-link>
+          </li>
+          <li>
             <button @click="handleLogout" class="btn btn-ghost">Se déconnecter</button>
           </li>
         </template>
@@ -28,22 +34,21 @@
 import { useAuthStore } from '../stores/auth'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
 
 const auth = useAuthStore()
 const { isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
-
 const handleLogout = async () => {
   try {
     const response = await fetch('http://localhost:3001/api/auth/logout', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${userStore.token}`
       }
     })
 
     if (response.ok) {
-      auth.logout()
       router.push('/login')
     }
   } catch (error) {
