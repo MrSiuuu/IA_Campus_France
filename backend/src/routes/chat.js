@@ -96,11 +96,47 @@ router.post('/messages', async (req, res) => {
     if (historyError) throw historyError;
 
     // Préparation du contexte pour OpenAI
-    const messages = [
-      { role: 'system', content: 'Tu es un assistant spécialisé dans l\'aide aux étudiants internationaux pour leurs démarches Campus France. Réponds en français.' },
-      ...history,
-      { role: 'user', content }
-    ];
+// Étape 1 : chercher un document pertinent dans faq_docs
+const { data: docs, error: docError } = await supabase
+  .from("faq_docs")
+  .select("title, content")
+  .ilike("title", "%lettre%") // on filtre sur le thème pour le test
+  .limit(1);
+
+if (docError) throw docError;
+
+const contextDoc = docs?.[0]?.content || "";
+
+// Étape 2 : construire le prompt avec le contexte
+const messages = [
+  {
+    role: 'system',
+    content: `
+Tu es une intelligence artificielle spécialisée dans l'accompagnement des étudiants africains dans les démarches Campus France.
+
+### 🎯 Ta mission :
+- Répondre uniquement à des questions en lien avec Campus France : visa, logement, lettre de motivation, CV, inscriptions, etc.
+- Ne jamais inventer d’informations. Utilise seulement le **contexte fourni** si disponible.
+- Si le contexte ne contient pas la réponse, tu dois le dire clairement.
+
+### 🧠 Ton style :
+- Tu expliques **étape par étape**
+- Tu fais des réponses **courtes, précises et structurées**
+- Tu réponds en **Markdown clair**, avec :
+  - **Titres**
+  - **Listes à puces**
+  - **Parties importantes en gras**
+  - **Paragraphes séparés**
+- Tu commences toujours par un **petit résumé clair en une phrase**
+
+### 📚 Contexte :
+${contextDoc}
+`
+  },
+  ...history,
+  { role: 'user', content }
+];
+
 
     // Appel à l'API OpenAI
     const completion = await openai.chat.completions.create({

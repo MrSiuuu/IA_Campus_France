@@ -64,7 +64,8 @@
             </div>
           </div>
           <div class="chat-bubble" :class="msg.role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-accent'">
-            {{ msg.content }}
+            <div v-if="msg.role === 'user'">{{ msg.content }}</div>
+            <div v-else v-html="renderMarkdown(msg.content)"></div>
           </div>
         </div>
         <!-- Indicateur de chargement -->
@@ -82,13 +83,20 @@
 
       <!-- Zone de saisie des messages -->
       <form class="p-4 flex gap-2 border-t border-base-100 bg-base-300" @submit.prevent="sendMessage">
-        <input 
-          v-model="input" 
-          type="text" 
-          class="input input-bordered flex-1" 
-          placeholder="Pose ta question à l'IA..." 
-          :disabled="isLoading || tokensRemaining <= 0"
-        />
+        <div class="flex-1 relative">
+          <textarea 
+            v-model="input" 
+            class="textarea textarea-bordered w-full" 
+            placeholder="Pose ta question à l'IA..." 
+            :disabled="isLoading || tokensRemaining <= 0"
+            rows="1"
+            @keydown.enter.exact.prevent="sendMessage"
+            @keydown.enter.shift.exact.prevent="input += '\n'"
+            ref="textareaInput"
+            @input="adjustTextareaHeight"
+            style="resize: none; min-height: 2.5rem; overflow-y: hidden;"
+          ></textarea>
+        </div>
         <button 
           class="btn btn-primary" 
           type="submit"
@@ -109,6 +117,7 @@ import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useAuthStore } from '../stores/auth'
+import { marked } from 'marked'
 
 /**
  * Initialisation des variables et stores
@@ -123,8 +132,7 @@ const messages = ref([])
 const input = ref('')
 const isLoading = ref(false)
 const tokensRemaining = ref(0)
-
-const API_URL = 'http://localhost:3001/api'
+const textareaInput = ref(null)
 
 /**
  * Chargement initial des données
@@ -134,6 +142,7 @@ const API_URL = 'http://localhost:3001/api'
 onMounted(async () => {
   await loadConversations()
   await loadUserTokens()
+  adjustTextareaHeight()
 })
 
 /**
@@ -242,6 +251,10 @@ async function sendMessage() {
   input.value = '';
   isLoading.value = true;
 
+  // Ajouter immédiatement le message de l'utilisateur
+  messages.value.push({ role: 'user', content: message });
+  scrollToBottom();
+
   try {
     console.log('Envoi du message:', {
       conversation_id: activeConv.value,
@@ -268,10 +281,8 @@ async function sendMessage() {
     const data = await response.json();
     console.log('Réponse reçue:', data);
 
-    messages.value.push(
-      { role: 'user', content: message },
-      { role: 'assistant', content: data.message }
-    );
+    // Ajouter seulement la réponse de l'assistant
+    messages.value.push({ role: 'assistant', content: data.message });
     tokensRemaining.value = data.tokens_remaining;
     scrollToBottom();
   } catch (error) {
@@ -281,6 +292,12 @@ async function sendMessage() {
   } finally {
     isLoading.value = false;
   }
+
+  nextTick(() => {
+    if (textareaInput.value) {
+      textareaInput.value.style.height = '2.5rem'
+    }
+  })
 }
 
 /**
@@ -341,6 +358,22 @@ watch(messages, () => {
 function goDashboard() {
   router.push('/dashboard')
 }
+
+function renderMarkdown(text) {
+  return marked.parse(text || '')
+}
+
+// Ajuster automatiquement la hauteur du textarea
+function adjustTextareaHeight() {
+  const textarea = textareaInput.value
+  if (textarea) {
+    textarea.style.height = '0'
+    const scrollHeight = textarea.scrollHeight
+    textarea.style.height = Math.min(scrollHeight, 200) + 'px' // Maximum 200px
+  }
+}
+
+const API_URL = 'http://localhost:3001/api'
 </script>
 
 <style scoped>
