@@ -7,66 +7,19 @@
     <!-- Trusted By Section -->
     <div class="px-4 sm:px-10 mt-12">
       <div class="max-w-screen-xl mx-auto px-6 py-6 bg-gradient-to-l from-purple-300 via-purple-200 to-purple-100 rounded-3xl">
-        <div class="flex flex-wrap gap-x-10 gap-y-7 items-center justify-center mt-6">
-          <div class="flex flex-col items-center">
-            <img src="/images/mali.png" class="w-24 h-16 object-contain" alt="Drapeau du Mali" />
-            <span class="text-sm font-medium mt-2">Mali</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/civ.png" class="w-24 h-16 object-contain" alt="Drapeau de la Côte d'Ivoire" />
-            <span class="text-sm font-medium mt-2">Côte d'Ivoire</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/benin.png" class="w-24 h-16 object-contain" alt="Drapeau du Bénin" />
-            <span class="text-sm font-medium mt-2">Bénin</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/togo.png" class="w-24 h-16 object-contain" alt="Drapeau du Togo" />
-            <span class="text-sm font-medium mt-2">Togo</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/senegal.png" class="w-24 h-16 object-contain" alt="Drapeau du Sénégal" />
-            <span class="text-sm font-medium mt-2">Sénégal</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/guinee.png" class="w-24 h-16 object-contain" alt="Drapeau de la Guinée" />
-            <span class="text-sm font-medium mt-2">Guinée</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <img src="/images/cameroun.png" class="w-24 h-16 object-contain" alt="Drapeau du Cameroun" />
-            <span class="text-sm font-medium mt-2">Cameroun</span>
-          </div>
-        </div>
+        <FlagCarousel />
         <h4 class="text-lg font-semibold text-center mt-12">Présent dans les pays d'Afrique de l'Ouest et du Centre</h4>
       </div>
     </div>
 
     <Features />
     <Pricing />
+    <Statistiques />
+    
 
-    <!-- Stats Section -->
-    <div id="stats" class="py-14 bg-gray-900 px-4 sm:px-10 md:mt-28 mt-20 border-b border-gray-600">
-      <div class="max-w-screen-xl mx-auto">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div class="text-white text-4xl font-semibold mb-3">98%</div>
-            <div class="text-sm text-slate-400">Taux de précision</div>
-          </div>
-          <div>
-            <div class="text-white text-4xl font-semibold mb-3">10M+</div>
-            <div class="text-sm text-slate-400">Requêtes quotidiennes</div>
-          </div>
-          <div>
-            <div class="text-white text-4xl font-semibold mb-3">24/7</div>
-            <div class="text-sm text-slate-400">Disponibilité</div>
-          </div>
-          <div>
-            <div class="text-white text-4xl font-semibold mb-3">50+</div>
-            <div class="text-sm text-slate-400">Langues supportées</div>
-          </div>
-        </div>
-      </div>
-    </div>
+
+    <!-- FAQ -->
+    <FAQ />
 
     <!-- Footer -->
     <footer class="bg-gray-900 px-4 sm:px-6 pt-12 pb-6">
@@ -181,4 +134,7 @@
 import Hero from '../components/Hero.vue'
 import Features from '../components/Features.vue'
 import Pricing from '../components/Pricing.vue'
+import FlagCarousel from '../components/FlagCarousel.vue'
+import FAQ from '../components/FAQ.vue'
+import Statistiques from '../components/Statistiques.vue'
 </script> 

@@ -1,5 +1,5 @@
 <template>
-  <div class="px-4 sm:px-10 py-6 mt-[70px]">
+  <div class="px-4 sm:px-10 py-6">
     <div class="grid xl:grid-cols-2 justify-center items-center gap-10">
       <div>
         <div class="max-w-3xl max-xl:mx-auto max-xl:text-center">
@@ -14,9 +14,6 @@
         <div class="mt-12 flex flex-wrap gap-x-6 gap-y-4 max-xl:justify-center">
           <button @click="$router.push('/register')" class="cursor-pointer px-6 py-3 text-base rounded-full font-medium tracking-wide text-white border border-purple-600 bg-purple-600 hover:bg-purple-700 transition-all">
             Commencer
-          </button>
-          <button @click="scrollToFeatures" class="cursor-pointer px-6 py-3 text-base rounded-full font-medium tracking-wide border border-slate-900 bg-transparent hover:border-purple-600 transition-all">
-            En savoir plus
           </button>
         </div>
 

@@ -1,28 +1,28 @@
 <template>
-  <div class="navbar bg-base-100 shadow-lg min-h-0 py-0">
-    <div class="container mx-auto flex items-center justify-between gap-4">
-      <router-link to="/" class="btn btn-ghost text-xl">IA Campus France</router-link>
-      <ul class="menu menu-horizontal">
+  <div class="navbar bg-base-100 shadow-lg min-h-[72px] py-4">
+    <div class="container mx-auto flex items-center justify-between gap-4 h-full">
+      <router-link to="/" class="btn btn-ghost text-xl flex items-center h-full">IA Campus France</router-link>
+      <ul class="menu menu-horizontal h-full flex items-center">
         <template v-if="!isAuthenticated">
-          <li>
-            <router-link to="/login" class="btn btn-ghost">Se connecter</router-link>
+          <li class="flex items-center h-full">
+            <router-link to="/login" class="btn btn-ghost flex items-center h-full">Se connecter</router-link>
           </li>
-          <li>
-            <router-link to="/register" class="btn btn-primary">Créer un compte</router-link>
+          <li class="flex items-center h-full">
+            <router-link to="/register" class="btn btn-primary flex items-center h-full">Créer un compte</router-link>
           </li>
         </template>
         <template v-else>
-          <li>
-            <router-link to="/dashboard" class="btn btn-ghost">Dashboard</router-link>
+          <li class="flex items-center h-full">
+            <router-link to="/dashboard" class="btn btn-ghost flex items-center h-full">Dashboard</router-link>
           </li>
-          <li>
-            <router-link to="/chat" class="btn btn-ghost">
+          <li class="flex items-center h-full">
+            <router-link to="/chat" class="btn btn-ghost flex items-center h-full">
               <span class="material-icons mr-2">chat</span>
               Chat IA
             </router-link>
           </li>
-          <li>
-            <button @click="handleLogout" class="btn btn-ghost">Se déconnecter</button>
+          <li class="flex items-center h-full">
+            <button @click="handleLogout" class="btn btn-ghost flex items-center h-full">Se déconnecter</button>
           </li>
         </template>
       </ul>

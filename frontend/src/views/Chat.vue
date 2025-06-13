@@ -7,18 +7,27 @@
 <template>
   <div class="min-h-screen flex bg-base-200">
     <!-- Sidebar : Liste des conversations -->
-    <aside class="w-72 bg-base-300 text-base-content flex flex-col p-4 border-r border-base-100">
+    <aside
+      class="w-72 bg-base-300 text-base-content flex flex-col p-4 border-r border-base-100
+      max-md:fixed max-md:top-0 max-md:left-0 max-md:h-full max-md:z-40 max-md:shadow-lg max-md:transition-transform max-md:duration-300
+      max-md:translate-x-[-100%]"
+      :class="{ 'max-md:translate-x-0': sidebarOpen }"
+      v-show="!isMobile || sidebarOpen"
+    >
       <!-- En-tête de la sidebar -->
       <div class="mb-6 flex items-center justify-between">
         <span class="text-xl font-bold tracking-wide">Conversations</span>
-        <button class="btn btn-sm btn-ghost" @click="goDashboard">
+        <button class="btn btn-sm btn-ghost" @click="closeSidebar" v-if="isMobile">
+          <span class="material-icons">close</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" @click="goDashboard" v-else>
           <span class="material-icons">arrow_back</span>
         </button>
       </div>
       <!-- Liste des conversations -->
       <ul class="flex-1 overflow-y-auto space-y-2">
         <li v-for="conv in conversations" :key="conv.id">
-          <button class="btn btn-block btn-ghost justify-start" :class="{ 'bg-primary text-primary-content': conv.id === activeConv }" @click="selectConversation(conv.id)">
+          <button class="btn btn-block btn-ghost justify-start" :class="{ 'bg-primary text-primary-content': conv.id === activeConv }" @click="selectConversation(conv.id); closeSidebar()">
             <div class="flex w-full items-center gap-2">
               <!-- Champ d'édition du titre -->
               <input
@@ -43,18 +52,23 @@
     </aside>
 
     <!-- Zone principale de chat -->
-    <main class="flex-1 flex flex-col h-screen">
+    <main class="flex-1 flex flex-col h-screen relative">
       <!-- En-tête avec informations utilisateur -->
       <div class="flex items-center justify-between p-4 border-b border-base-100 bg-base-200">
-        <h2 class="text-2xl font-bold">Chat IA Campus France</h2>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-ghost btn-sm md:hidden" @click="openSidebar">
+            <span class="material-icons">menu</span>
+          </button>
+          <h2 class="text-2xl font-bold">Chat IA Campus France</h2>
+        </div>
         <div class="flex items-center gap-4">
           <span class="text-sm">Tokens restants : {{ tokensRemaining }}</span>
-          <button class="btn btn-outline btn-accent" @click="goDashboard">⬅️ Retour au dashboard</button>
+          <button class="btn btn-outline btn-accent max-md:hidden" @click="goDashboard">⬅️ Retour au dashboard</button>
         </div>
       </div>
 
       <!-- Zone des messages -->
-      <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-base-200" ref="messagesContainer">
+      <div class="flex-1 overflow-y-auto p-2 md:p-6 space-y-2 md:space-y-4 bg-base-200" ref="messagesContainer">
         <!-- Messages de la conversation -->
         <div v-for="msg in messages" :key="msg.id" class="chat" :class="msg.role === 'user' ? 'chat-end' : 'chat-start'">
           <div class="chat-image avatar">
@@ -63,7 +77,7 @@
               <span v-else class="material-icons text-accent">smart_toy</span>
             </div>
           </div>
-          <div class="chat-bubble" :class="msg.role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-accent'">
+          <div class="chat-bubble text-sm md:text-base" :class="msg.role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-accent'">
             <div v-if="msg.role === 'user'">{{ msg.content }}</div>
             <div v-else v-html="renderMarkdown(msg.content)"></div>
           </div>
@@ -82,11 +96,11 @@
       </div>
 
       <!-- Zone de saisie des messages -->
-      <form class="p-4 flex gap-2 border-t border-base-100 bg-base-300" @submit.prevent="sendMessage">
+      <form class="p-2 md:p-4 flex gap-2 border-t border-base-100 bg-base-300" @submit.prevent="sendMessage">
         <div class="flex-1 relative">
           <textarea 
             v-model="input" 
-            class="textarea textarea-bordered w-full" 
+            class="textarea textarea-bordered w-full text-base md:text-lg" 
             placeholder="Pose ta question à l'IA..." 
             :disabled="isLoading || tokensRemaining <= 0"
             rows="1"
@@ -98,7 +112,7 @@
           ></textarea>
         </div>
         <button 
-          class="btn btn-primary" 
+          class="btn btn-primary text-base md:text-lg px-4 md:px-8 py-2 md:py-3" 
           type="submit"
           :disabled="isLoading || !input.trim() || tokensRemaining <= 0"
         >
@@ -133,6 +147,8 @@ const input = ref('')
 const isLoading = ref(false)
 const tokensRemaining = ref(0)
 const textareaInput = ref(null)
+const sidebarOpen = ref(false)
+const isMobile = ref(false)
 
 /**
  * Chargement initial des données
@@ -143,6 +159,8 @@ onMounted(async () => {
   await loadConversations()
   await loadUserTokens()
   adjustTextareaHeight()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
 })
 
 /**
@@ -371,6 +389,16 @@ function adjustTextareaHeight() {
     const scrollHeight = textarea.scrollHeight
     textarea.style.height = Math.min(scrollHeight, 200) + 'px' // Maximum 200px
   }
+}
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768
+}
+function openSidebar() {
+  sidebarOpen.value = true
+}
+function closeSidebar() {
+  sidebarOpen.value = false
 }
 
 const API_URL = 'http://localhost:3001/api'
