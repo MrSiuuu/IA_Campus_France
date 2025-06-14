@@ -37,7 +37,8 @@ const navItems = [
   { label: 'Utilisateurs', tab: 'users', icon: 'group' },
   { label: 'Documents partagés', tab: 'documents', icon: 'folder_shared' },
   { label: 'Base de connaissances', tab: 'knowledge', icon: 'menu_book' },
-  { label: 'Logs des conversations', tab: 'chats', icon: 'chat' }
+  { label: 'Logs des conversations', tab: 'chats', icon: 'chat' },
+  { label: 'Recommandations', tab: 'recommandations', icon: 'thumb_up' },
 ]
 
 defineEmits(['change-tab', 'logout'])

@@ -19,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/contact', require('./routes/admin'));
 // app.use('/api/documents', documentRoutes);
 
 // Route de test

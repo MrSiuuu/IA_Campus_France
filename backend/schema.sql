@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS conversations CASCADE;
 DROP TABLE IF EXISTS faq_docs CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS contact CASCADE;
 
 DROP TYPE IF EXISTS user_role CASCADE;
 DROP TYPE IF EXISTS document_type CASCADE;
@@ -183,4 +184,27 @@ CREATE POLICY "Admin or self can view users"
     ON users FOR SELECT
     USING (
       role = 'admin' OR id = auth.uid()
-    ); 
+    );
+
+-- 13. Table contact (formulaire contact et report)
+CREATE TABLE IF NOT EXISTS contact (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'contact', -- 'contact' ou 'report'
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE contact ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can view all contacts"
+    ON contact FOR SELECT
+    TO service_role
+    USING (true);
+
+CREATE POLICY "Anyone can insert contact"
+    ON contact FOR INSERT
+    TO public
+    WITH CHECK (true); 

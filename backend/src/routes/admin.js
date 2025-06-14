@@ -3,7 +3,20 @@ const router = express.Router()
 const supabase = require('../config/supabase')
 const { authenticateToken, isAdmin } = require('../middleware/auth')
 
-// Middleware d'authentification et de vérification du rôle admin pour toutes les routes
+// --- ROUTE PUBLIQUE AVANT LE MIDDLEWARE ---
+router.post('/contact', async (req, res) => {
+  const { name, email, subject, message, type } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Champs obligatoires manquants.' });
+  }
+  const { error } = await supabase.from('contact').insert([{ name, email, subject, message, type: type || 'contact' }]);
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  res.status(201).json({ success: true });
+});
+
+// --- PROTECTION POUR TOUTES LES AUTRES ROUTES ---
 router.use(authenticateToken, isAdmin)
 
 // Récupérer les statistiques générales
@@ -260,6 +273,21 @@ router.get('/chats', async (req, res) => {
     res.json(conversationsWithStats)
   } catch (error) {
     console.error('Erreur lors de la récupération des conversations:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// Route pour récupérer les recommandations/messages de contact
+router.get('/recommandations', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('contact')
+      .select('id, name, email, message, subject, type')
+      .order('id', { ascending: false })
+    if (error) throw error
+    res.json(data)
+  } catch (error) {
+    console.error('Erreur lors de la récupération des recommandations:', error)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })

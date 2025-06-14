@@ -5,6 +5,8 @@ import Register from '../views/Register.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Admin from '../views/Admin.vue'
 import Chat from '../views/Chat.vue'
+import Contact from '../views/Contact.vue'
+import Report from '../views/Report.vue'
 
 const routes = [
   {
@@ -36,6 +38,16 @@ const routes = [
     path: '/chat',
     name: 'Chat',
     component: Chat
+  },
+  {
+    path: '/contact',
+    name: 'Contact',
+    component: Contact
+  },
+  {
+    path: '/report',
+    name: 'Report',
+    component: Report
   }
 ]
 

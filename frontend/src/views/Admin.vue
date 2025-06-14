@@ -57,6 +57,30 @@
               @view="handleViewChat"
             />
           </div>
+
+          <!-- Recommandations -->
+          <div v-show="activeTab === 'recommandations'">
+            <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Recommandations / Messages de contact</h2>
+            <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+              <thead>
+                <tr>
+                  <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
+                  <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="rec in recommandations" :key="rec.id">
+                  <td class="px-6 py-4 border-b text-gray-900">{{ rec.name }}</td>
+                  <td class="px-6 py-4 border-b text-gray-900">{{ rec.email }}</td>
+                  <td class="px-6 py-4 border-b text-gray-900">{{ rec.message }}</td>
+                </tr>
+                <tr v-if="recommandations.length === 0">
+                  <td colspan="3" class="px-6 py-4 text-center text-gray-400">Aucune recommandation pour le moment.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
@@ -85,6 +109,7 @@ const stats = ref({
 const users = ref([])
 const knowledgeDocuments = ref([])
 const chats = ref([])
+const recommandations = ref([])
 const loading = ref(false)
 const error = ref(null)
 
@@ -190,6 +215,25 @@ async function fetchChats() {
   }
 }
 
+async function fetchRecommendations() {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/recommandations', {
+      headers: {
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur lors de la récupération des recommandations')
+    recommandations.value = await response.json()
+  } catch (err) {
+    console.error('Erreur:', err)
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
 function setTab(tab) {
   activeTab.value = tab
   error.value = null
@@ -197,6 +241,7 @@ function setTab(tab) {
   if (tab === 'users') fetchUsers()
   if (tab === 'knowledge') fetchKnowledgeDocuments()
   if (tab === 'chats') fetchChats()
+  if (tab === 'recommandations') fetchRecommendations()
 }
 
 function handleEditUser(user) {
