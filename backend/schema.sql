@@ -127,46 +127,85 @@ ALTER TABLE faq_docs ENABLE ROW LEVEL SECURITY;
 
 -- 12. Politiques RLS
 -- Users
-CREATE POLICY "Users can view their own data"
-    ON users FOR SELECT
-    USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can view their own data" ON users;
+DROP POLICY IF EXISTS "Admin can view all users" ON users;
+DROP POLICY IF EXISTS "view all" ON users;
 
-CREATE POLICY "Users can update their own data"
+-- Vue pour les rôles utilisateurs (évite la récursion)
+CREATE OR REPLACE VIEW public_user_roles AS
+SELECT id, role FROM users;
+
+CREATE POLICY "Admin or self can view users"
+    ON users FOR SELECT
+    USING (
+        auth.uid() = id
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
+
+CREATE POLICY "Admin or self can update users"
     ON users FOR UPDATE
-    USING (auth.uid() = id);
+    USING (
+        auth.uid() = id
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
 
 -- Conversations
-CREATE POLICY "Users can view their own conversations"
-    ON conversations FOR SELECT
-    USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view their own conversations" ON conversations;
 
-CREATE POLICY "Users can create their own conversations"
-    ON conversations FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin or self can view conversations"
+    ON conversations FOR SELECT
+    USING (
+        user_id = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
 
 -- Messages
-CREATE POLICY "Users can view their own messages"
-    ON messages FOR SELECT
-    USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view their own messages" ON messages;
 
-CREATE POLICY "Users can create their own messages"
-    ON messages FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin or self can view messages"
+    ON messages FOR SELECT
+    USING (
+        user_id = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
 
 -- Documents
-CREATE POLICY "Users can view their own documents"
+DROP POLICY IF EXISTS "Users can view their own documents" ON documents;
+
+CREATE POLICY "Admin or self can view documents"
     ON documents FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (
+        user_id = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
 
-CREATE POLICY "Users can upload their own documents"
-    ON documents FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+-- Update users
+DROP POLICY IF EXISTS "Users can update their own data" ON users;
 
--- Autoriser le rôle service_role à insérer des documents
-CREATE POLICY "Service can insert documents"
-    ON documents FOR INSERT
-    TO service_role
-    WITH CHECK (true);
+CREATE POLICY "Admin or self can update users"
+    ON users FOR UPDATE
+    USING (
+        auth.uid() = id
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles r
+            WHERE r.id = auth.uid() AND r.role = 'admin'
+        )
+    );
 
 -- Payments
 CREATE POLICY "Users can view their own payments"
@@ -178,13 +217,6 @@ CREATE POLICY "Authenticated users can read FAQ docs"
     ON faq_docs FOR SELECT
     TO authenticated
     USING (true);
-
--- Nouvelle politique : un admin voit tout, un utilisateur normal ne voit que lui-même
-CREATE POLICY "Admin or self can view users"
-    ON users FOR SELECT
-    USING (
-      role = 'admin' OR id = auth.uid()
-    );
 
 -- 13. Table contact (formulaire contact et report)
 CREATE TABLE IF NOT EXISTS contact (
@@ -199,10 +231,17 @@ CREATE TABLE IF NOT EXISTS contact (
 
 ALTER TABLE contact ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admin can view all contacts" ON contact;
+
 CREATE POLICY "Admin can view all contacts"
     ON contact FOR SELECT
-    TO service_role
-    USING (true);
+    USING (
+        EXISTS (
+            SELECT 1 FROM users
+            WHERE users.id = auth.uid()
+            AND users.role = 'admin'
+        )
+    );
 
 CREATE POLICY "Anyone can insert contact"
     ON contact FOR INSERT

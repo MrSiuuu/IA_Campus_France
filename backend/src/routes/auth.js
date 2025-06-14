@@ -83,7 +83,15 @@ router.post('/login', validateLogin, async (req, res) => {
             password
         });
 
-        if (error) throw error;
+        if (error) {
+            if (error.message === 'Invalid login credentials') {
+                return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+            }
+            if (error.message.includes('Email not confirmed')) {
+                return res.status(401).json({ error: 'Veuillez confirmer votre email avant de vous connecter' });
+            }
+            throw error;
+        }
 
         // Récupérer les informations de l'utilisateur
         const { data: userData, error: userError } = await supabase
@@ -100,7 +108,7 @@ router.post('/login', validateLogin, async (req, res) => {
         });
     } catch (error) {
         console.error('Erreur lors de la connexion:', error);
-        res.status(401).json({ error: 'Identifiants invalides' });
+        res.status(401).json({ error: 'Erreur lors de la connexion. Veuillez réessayer.' });
     }
 });
 
