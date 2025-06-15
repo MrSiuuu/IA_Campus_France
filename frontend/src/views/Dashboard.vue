@@ -62,6 +62,12 @@
             @delete="handleDeleteConversation"
           />
         </div>
+
+        <!-- Onglet Mes tokens -->
+        <div v-show="activeTab === 'tokens'">
+          <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mes tokens</h2>
+          <TokensPanel :tokens="profile.tokens_remaining" @buy="handleBuyTokens" />
+        </div>
       </div>
     </main>
   </div>
@@ -75,6 +81,7 @@ import DashboardActions from '../components/student/DashboardActions.vue'
 import ProfileCard from '../components/student/ProfileCard.vue'
 import EditProfileModal from '../components/student/EditProfileModal.vue'
 import ConversationList from '../components/student/ConversationList.vue'
+import TokensPanel from '../components/student/TokensPanel.vue'
 
 const router = useRouter()
 const activeTab = ref('accueil')
@@ -187,7 +194,7 @@ async function handleSaveProfile(newProfile) {
 }
 
 function handleResumeConversation(conv) {
-  router.push('/chat')
+  router.push(`/chat?conv=${conv.id}`)
 }
 
 function handleDeleteConversation(conv) {
@@ -210,6 +217,11 @@ function handleDeleteConversation(conv) {
     console.error('Erreur:', error);
     alert('Erreur lors de la suppression de la conversation');
   });
+}
+
+function handleBuyTokens() {
+  // Ici tu peux ouvrir une modale, rediriger vers une page de paiement, etc.
+  alert('Fonctionnalité à venir : achat/augmentation de tokens !')
 }
 
 function logout() {

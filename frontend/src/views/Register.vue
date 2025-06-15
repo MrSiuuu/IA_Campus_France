@@ -169,7 +169,8 @@ const handleRegister = async () => {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.error || 'Erreur lors de l\'inscription')
+      error.value = data.error || 'Erreur lors de l\'inscription'
+      return
     }
 
     success.value = 'Inscription réussie ! Vous pouvez maintenant vous connecter.'
@@ -178,7 +179,7 @@ const handleRegister = async () => {
     }, 2000)
   } catch (error) {
     console.error('Erreur:', error)
-    error.value = error.message || 'Erreur lors de l\'inscription'
+    error.value = 'Erreur lors de l\'inscription. Veuillez réessayer.'
   } finally {
     isLoading.value = false
   }

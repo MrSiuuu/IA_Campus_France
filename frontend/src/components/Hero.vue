@@ -1,46 +1,54 @@
 <template>
-  <div class="px-2 sm:px-6 py-4">
-    <div class="grid grid-cols-1 xl:grid-cols-2 justify-center items-center gap-6 xl:gap-10">
-      <div>
-        <div class="max-w-3xl mx-auto text-center xl:text-left">
-          <h1 class="lg:text-6xl md:text-5xl text-3xl font-semibold lg:!leading-[75px] md:!leading-[65px] leading-[40px]">
-            Superchargez vos démarches avec notre Assistant IA Campus France
-          </h1>
-          <p class="text-base leading-relaxed mt-4">
-            Notre assistant IA n'est pas qu'un simple outil d'intelligence artificielle—c'est votre partenaire cognitif, conçu pour révolutionner vos démarches administratives, vos créations et vos décisions. Propulsé par des modèles d'apprentissage automatique de pointe et entraîné sur de vastes ensembles de données.
-          </p>
-        </div>
+  <section class="relative w-full h-[90vh] overflow-hidden pt-[72px] bg-[#0f172a] text-white">
+    <!-- SVG animé en fond -->
+    <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(100,116,139,0.05)">
+            <animate attributeName="stop-color" values="rgba(100,116,139,0.05);rgba(30,41,59,0.3);rgba(100,116,139,0.05)" dur="10s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="100%" stop-color="rgba(100, 116, 139, 0.1)" />
+        </linearGradient>
 
-        <div class="mt-8 flex flex-wrap gap-x-4 gap-y-3 justify-center xl:justify-start">
-          <button @click="$router.push('/register')" class="cursor-pointer px-6 py-3 text-base rounded-full font-medium tracking-wide text-white border border-purple-600 bg-purple-600 hover:bg-purple-700 transition-all">
-            Commencer
-          </button>
-        </div>
+        <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+          <path d="M 80 0 L 0 0 0 80" fill="none" stroke="url(#lineGradient)" stroke-width="1.5" />
+        </pattern>
 
-        <div class="flex items-center flex-wrap justify-center xl:justify-start gap-3 mt-6">
-          <div class="flex -space-x-2">
-            <img src="/images/81vbpm8wdml-_ac_sl1500_.webp" alt="Avatar" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white" />
-            <img src="/images/81vbpm8wdml-_ac_sl1500_.webp" alt="Avatar" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white" />
-            <img src="/images/81vbpm8wdml-_ac_sl1500_.webp" alt="Avatar" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white" />
-          </div>
-          <div class="text-slate-500 text-sm md:text-base">
-            <span class="font-semibold">10,000+</span> étudiants nous font confiance
-          </div>
-        </div>
-      </div>
+        <pattern id="blueSquares" width="400" height="400" patternUnits="userSpaceOnUse">
+          <rect x="80" y="0" width="80" height="80" fill="rgba(99,102,241,0.06)">
+            <animate attributeName="fill" values="rgba(99,102,241,0.04);rgba(99,102,241,0.08);rgba(99,102,241,0.04)" dur="8s" repeatCount="indefinite" />
+          </rect>
+          <rect x="240" y="80" width="80" height="80" fill="rgba(99,102,241,0.05)" />
+          <rect x="160" y="240" width="80" height="80" fill="rgba(99,102,241,0.04)" />
+        </pattern>
+      </defs>
 
-      <div class="w-full mt-8 xl:mt-0">
-        <img src="/images/pc-gamer-wall.jpg" alt="Hero Image" class="w-full h-48 sm:h-64 md:h-80 xl:h-full object-cover rounded-lg" />
-      </div>
+      <rect width="100%" height="100%" fill="url(#grid)" />
+      <rect width="100%" height="100%" fill="url(#blueSquares)" />
+    </svg>
+
+    <!-- Contenu par-dessus -->
+    <div class="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+      <span class="inline-block mb-4 px-4 py-1 rounded-full bg-green-100 text-green-700 font-semibold text-sm shadow">
+        Version actuelle : v1.0
+      </span>
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-white leading-tight mb-6">
+        Superchargez vos démarches avec
+        <span class="text-indigo-400">IA Campus France</span>
+      </h1>
+      <p class="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl">
+        La plateforme intelligente pour accompagner les étudiants africains dans toutes leurs démarches Campus France :
+        visa, logement, lettre de motivation, CV, inscriptions, et plus encore.
+      </p>
+      <button
+        @click="$router.push('/register')"
+        class="inline-flex items-center gap-x-2 text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-blue-700 hover:to-indigo-700 font-semibold rounded-full py-3 px-6 shadow-lg transition-all duration-300"
+      >
+        Commencer maintenant
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+      </button>
     </div>
-  </div>
+  </section>
 </template>
-
-<script setup>
-const scrollToFeatures = () => {
-  const featuresSection = document.getElementById('features')
-  if (featuresSection) {
-    featuresSection.scrollIntoView({ behavior: 'smooth' })
-  }
-}
-</script> 

@@ -82,8 +82,8 @@ router.post('/messages', async (req, res) => {
       .single();
 
     if (userError) throw userError;
-    if (userData.tokens_remaining <= 0) {
-      return res.status(403).json({ error: 'Plus de tokens disponibles' });
+    if (userData.tokens_remaining < 10) {
+      return res.status(403).json({ error: 'Il vous reste moins de 10 tokens, veuillez augmenter votre solde pour continuer à discuter avec l\'IA.' });
     }
 
     // Récupération de l'historique des messages
@@ -116,7 +116,7 @@ Tu es une intelligence artificielle spécialisée dans l'accompagnement des étu
 
 ### 🎯 Ta mission :
 - Répondre uniquement à des questions en lien avec Campus France : visa, logement, lettre de motivation, CV, inscriptions, etc.
-- Ne jamais inventer d’informations. Utilise seulement le **contexte fourni** si disponible.
+- Ne jamais inventer d'informations. Utilise seulement le **contexte fourni** si disponible.
 - Si le contexte ne contient pas la réponse, tu dois le dire clairement.
 
 ### 🧠 Ton style :

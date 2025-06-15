@@ -94,20 +94,34 @@ function closeDrawer() {
 
 const handleLogout = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/logout', {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      auth.logout()
+      router.push('/login')
+      return
+    }
+
+    const session = JSON.parse(token)
+    const response = await fetch('/api/auth/logout', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userStore.token}`
+        'Authorization': `Bearer ${session.access_token}`
       }
     })
 
     if (response.ok) {
       auth.logout()
-      userStore.clearUser()
+      router.push('/login')
+    } else {
+      // Si la requête échoue, on déconnecte quand même l'utilisateur localement
+      auth.logout()
       router.push('/login')
     }
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error)
+    // En cas d'erreur, on déconnecte quand même l'utilisateur localement
+    auth.logout()
+    router.push('/login')
   }
 }
 

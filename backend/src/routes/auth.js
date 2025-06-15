@@ -212,4 +212,30 @@ router.get('/conversations', async (req, res) => {
     }
 });
 
+// Route pour rafraîchir le token
+router.post('/refresh-token', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Token manquant' });
+        }
+
+        // Vérifier si le token est valide
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        if (userError) {
+            return res.status(401).json({ error: 'Token invalide' });
+        }
+
+        // Si le token est valide, on renvoie le même token
+        // Le frontend continuera à l'utiliser
+        res.json({ 
+            message: 'Token valide',
+            user: user
+        });
+    } catch (error) {
+        console.error('Erreur lors du rafraîchissement du token:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
 module.exports = router; 

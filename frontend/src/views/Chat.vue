@@ -102,7 +102,7 @@
             v-model="input" 
             class="textarea textarea-bordered w-full text-base md:text-lg" 
             placeholder="Pose ta question à l'IA..." 
-            :disabled="isLoading || tokensRemaining <= 0"
+            :disabled="isLoading || tokensRemaining < 10"
             rows="1"
             @keydown.enter.exact.prevent="sendMessage"
             @keydown.enter.shift.exact.prevent="input += '\n'"
@@ -114,12 +114,36 @@
         <button 
           class="btn btn-primary text-base md:text-lg px-4 md:px-8 py-2 md:py-3" 
           type="submit"
-          :disabled="isLoading || !input.trim() || tokensRemaining <= 0"
+          :disabled="isLoading || !input.trim() || tokensRemaining < 10"
         >
           Envoyer
         </button>
       </form>
+      <div v-if="tokensRemaining > 0 && tokensRemaining < 10" class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 mt-2 flex items-center justify-between">
+        <span>Il vous reste moins de 10 tokens, vous ne pouvez plus envoyer de message à l'IA.</span>
+        <button class="ml-4 px-4 py-2 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-semibold" @click="goBuyTokens">Augmenter mes tokens</button>
+      </div>
+      <div v-else-if="tokensRemaining <= 0" class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 mt-2 flex items-center justify-between">
+        <span>Vous n'avez plus de tokens. Veuillez augmenter votre solde pour continuer à discuter avec l'IA.</span>
+        <button class="ml-4 px-4 py-2 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-semibold" @click="goBuyTokens">Augmenter mes tokens</button>
+      </div>
     </main>
+
+    <!-- Modale de création de conversation -->
+    <div v-if="showCreateModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-11/12 max-w-sm mx-auto">
+        <h3 class="text-lg sm:text-xl font-bold mb-4 text-black">Nouvelle conversation</h3>
+        <input v-model="newConvTitle" type="text" class="input input-bordered w-full mb-2 text-black placeholder-gray-500 text-base sm:text-lg" placeholder="Nom de la conversation" @keyup.enter="confirmCreateConversation" autofocus />
+        <div v-if="createError" class="text-red-600 text-sm mb-2 flex items-center">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {{ createError }}
+        </div>
+        <div class="flex flex-col sm:flex-row justify-end gap-2 mt-2">
+          <button class="btn btn-ghost text-black w-full sm:w-auto" @click="cancelCreateConversation">Annuler</button>
+          <button class="btn btn-primary w-full sm:w-auto" @click="confirmCreateConversation">Créer</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -128,7 +152,7 @@
  * Imports des dépendances Vue et des stores
  */
 import { ref, onMounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useAuthStore } from '../stores/auth'
 import { marked } from 'marked'
@@ -137,6 +161,7 @@ import { marked } from 'marked'
  * Initialisation des variables et stores
  */
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const authStore = useAuthStore()
 const messagesContainer = ref(null)
@@ -149,6 +174,9 @@ const tokensRemaining = ref(0)
 const textareaInput = ref(null)
 const sidebarOpen = ref(false)
 const isMobile = ref(false)
+const showCreateModal = ref(false)
+const newConvTitle = ref('')
+const createError = ref('')
 
 /**
  * Chargement initial des données
@@ -161,6 +189,15 @@ onMounted(async () => {
   adjustTextareaHeight()
   checkMobile()
   window.addEventListener('resize', checkMobile)
+
+  // Sélection automatique de la conversation si paramètre conv présent
+  const convId = route.query.conv
+  if (convId && conversations.value.length > 0) {
+    const found = conversations.value.find(c => String(c.id) === String(convId))
+    if (found) {
+      selectConversation(found.id)
+    }
+  }
 })
 
 /**
@@ -197,9 +234,10 @@ async function loadConversations() {
     if (!response.ok) throw new Error('Erreur lors du chargement des conversations')
     const data = await response.json()
     conversations.value = data.map(conv => ({ ...conv, isEditing: false }))
-    if (data.length > 0) {
-      selectConversation(data[0].id)
-    }
+    // Suppression de la sélection automatique ici
+    // if (data.length > 0) {
+    //   selectConversation(data[0].id)
+    // }
   } catch (error) {
     console.error('Erreur lors du chargement des conversations:', error)
   }
@@ -231,6 +269,16 @@ async function selectConversation(id) {
  * Appelle l'API POST /api/chat/conversations
  */
 async function newConversation() {
+  showCreateModal.value = true
+  newConvTitle.value = ''
+  createError.value = ''
+}
+
+async function confirmCreateConversation() {
+  if (!newConvTitle.value.trim()) {
+    createError.value = 'Veuillez entrer un nom de conversation.'
+    return
+  }
   try {
     const response = await fetch(`${API_URL}/chat/conversations`, {
       method: 'POST',
@@ -238,18 +286,25 @@ async function newConversation() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.session?.access_token}`
       },
-      body: JSON.stringify({ title: 'Nouvelle conversation' })
+      body: JSON.stringify({ title: newConvTitle.value })
     });
-
     if (!response.ok) throw new Error('Erreur lors de la création de la conversation');
-    
     const data = await response.json();
     conversations.value.unshift({ ...data, isEditing: false });
     activeConv.value = data.id;
     messages.value = [];
+    showCreateModal.value = false
+    newConvTitle.value = ''
+    createError.value = ''
   } catch (error) {
-    console.error('Erreur lors de la création de la conversation:', error);
+    createError.value = error.message || 'Erreur lors de la création de la conversation.'
   }
+}
+
+function cancelCreateConversation() {
+  showCreateModal.value = false
+  newConvTitle.value = ''
+  createError.value = ''
 }
 
 /**
@@ -399,6 +454,11 @@ function openSidebar() {
 }
 function closeSidebar() {
   sidebarOpen.value = false
+}
+
+function goBuyTokens() {
+  // Redirige vers l'onglet tokens du dashboard
+  router.push('/dashboard?tab=tokens')
 }
 
 const API_URL = 'http://localhost:3001/api'
