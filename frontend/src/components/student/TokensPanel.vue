@@ -61,7 +61,7 @@ const redeemPromo = async () => {
   success.value = ''
 
   try {
-    const response = await axios.post('/api/users/redeem-promo', {
+    const response = await axios.post('/users/redeem-promo', {
       code: promoCode.value
     })
 
