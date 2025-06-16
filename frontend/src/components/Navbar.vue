@@ -82,6 +82,7 @@ const userStore = useUserStore()
 const { isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
 const drawerOpen = ref(false)
+const apiUrl = import.meta.env.VITE_API_URL
 
 function openDrawer() {
   drawerOpen.value = true
@@ -102,7 +103,7 @@ const handleLogout = async () => {
     }
 
     const session = JSON.parse(token)
-    const response = await fetch('/api/auth/logout', {
+    const response = await fetch(`${apiUrl}/auth/logout`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session.access_token}`

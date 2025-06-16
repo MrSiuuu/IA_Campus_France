@@ -107,7 +107,7 @@ const isLoading = ref(false)
 
 const loadPromoCodes = async () => {
   try {
-    const response = await axios.get('/api/admin/promo-codes')
+    const response = await axios.get('/admin/promo-codes')
     promoCodes.value = response.data
   } catch (err) {
     error.value = 'Erreur lors du chargement des codes promo'
@@ -125,7 +125,7 @@ const createPromoCode = async () => {
   success.value = ''
 
   try {
-    await axios.post('/api/admin/promo-codes', newCode.value)
+    await axios.post('/admin/promo-codes', newCode.value)
     success.value = 'Code promo créé avec succès'
     newCode.value = { code: '', token_amount: null, max_uses: null }
     await loadPromoCodes()
@@ -138,7 +138,7 @@ const createPromoCode = async () => {
 
 const deactivateCode = async (id) => {
   try {
-    await axios.put(`/api/admin/promo-codes/${id}/deactivate`)
+    await axios.put(`/admin/promo-codes/${id}/deactivate`)
     await loadPromoCodes()
     success.value = 'Code promo désactivé avec succès'
   } catch (err) {

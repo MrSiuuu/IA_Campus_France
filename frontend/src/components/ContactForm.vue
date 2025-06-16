@@ -32,6 +32,7 @@
 
 <script setup>
 import { ref } from 'vue'
+const apiUrl = import.meta.env.VITE_API_URL
 const form = ref({ name: '', email: '', subject: '', message: '' })
 const success = ref(false)
 const error = ref(false)
@@ -40,7 +41,7 @@ async function handleSubmit() {
   success.value = false
   error.value = false
   try {
-    const res = await fetch('/api/contact/contact', {
+    const res = await fetch(`${apiUrl}/contact/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form.value, type: 'contact' })

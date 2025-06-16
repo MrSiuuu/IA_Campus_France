@@ -404,7 +404,7 @@ async function renameConversation(conv) {
   }
   conv.isEditing = false
   try {
-    const response = await fetch(`/api/chat/conversations/${conv.id}`, {
+    const response = await fetch(`${API_URL}/chat/conversations/${conv.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${userStore.token}`,
