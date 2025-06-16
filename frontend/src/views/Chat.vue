@@ -62,7 +62,7 @@
           <h2 class="text-2xl font-bold">Chat IA Campus France</h2>
         </div>
         <div class="flex items-center gap-4">
-          <span class="text-sm">Tokens restants : {{ tokensRemaining }}</span>
+          <span v-if="tokensRemaining !== null" class="text-sm">Tokens restants : {{ tokensRemaining }}</span>
           <button class="btn btn-outline btn-accent max-md:hidden" @click="goDashboard">⬅️ Retour au dashboard</button>
         </div>
       </div>
@@ -119,11 +119,7 @@
           Envoyer
         </button>
       </form>
-      <div v-if="tokensRemaining > 0 && tokensRemaining < 10" class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 mt-2 flex items-center justify-between">
-        <span>Il vous reste moins de 10 tokens, vous ne pouvez plus envoyer de message à l'IA.</span>
-        <button class="ml-4 px-4 py-2 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-semibold" @click="goBuyTokens">Augmenter mes tokens</button>
-      </div>
-      <div v-else-if="tokensRemaining <= 0" class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 mt-2 flex items-center justify-between">
+      <div v-if="tokensRemaining !== null && tokensRemaining <= 0" class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 mt-2 flex items-center justify-between">
         <span>Vous n'avez plus de tokens. Veuillez augmenter votre solde pour continuer à discuter avec l'IA.</span>
         <button class="ml-4 px-4 py-2 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-semibold" @click="goBuyTokens">Augmenter mes tokens</button>
       </div>
@@ -170,7 +166,7 @@ const activeConv = ref(null)
 const messages = ref([])
 const input = ref('')
 const isLoading = ref(false)
-const tokensRemaining = ref(0)
+const tokensRemaining = ref(null)
 const textareaInput = ref(null)
 const sidebarOpen = ref(false)
 const isMobile = ref(false)

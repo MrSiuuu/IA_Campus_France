@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex bg-[#F5F7FA]">
     <!-- Sidebar -->
-    <aside class="w-64 bg-[#1E1E2F] text-white flex flex-col py-8 px-4">
+    <aside class="w-64 bg-[#1E1E2F] text-white flex flex-col py-8 px-4 hidden md:flex">
       <div class="mb-10 flex items-center justify-center">
         <span class="text-2xl font-bold tracking-wide">Espace Étudiant</span>
       </div>
@@ -24,6 +24,18 @@
         🔐 Déconnexion
       </button>
     </aside>
+
+    <!-- Barre d'onglets mobile en bas -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around md:hidden z-50">
+      <button v-for="item in navItems" :key="item.tab" @click="setTab(item.tab)" class="flex flex-col items-center py-2 flex-1" :class="activeTab === item.tab ? 'text-indigo-600' : 'text-gray-400'">
+        <span class="material-icons">{{ item.icon }}</span>
+        <span class="text-xs">{{ item.label }}</span>
+      </button>
+      <button @click="logout" class="flex flex-col items-center py-2 flex-1 text-red-500">
+        <span class="material-icons">logout</span>
+        <span class="text-xs">Déconnexion</span>
+      </button>
+    </nav>
 
     <!-- Main content -->
     <main class="flex-1 p-10 bg-[#F5F7FA] min-h-screen">
