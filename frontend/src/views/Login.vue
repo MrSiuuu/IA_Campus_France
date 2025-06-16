@@ -118,11 +118,13 @@ const rememberMe = ref(false)
 const isLoading = ref(false)
 const error = ref('')
 
+const apiUrl = import.meta.env.VITE_API_URL
+
 const handleLogin = async () => {
   isLoading.value = true
   error.value = ''
   try {
-    const response = await fetch('http://localhost:3001/api/auth/login', {
+    const response = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

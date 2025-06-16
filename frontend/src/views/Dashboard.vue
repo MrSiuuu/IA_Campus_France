@@ -89,6 +89,8 @@ const documentsCount = ref(0)
 const conversationsCount = ref(0)
 const showEditProfileModal = ref(false)
 
+const apiUrl = import.meta.env.VITE_API_URL
+
 const navItems = [
   { label: 'Accueil', tab: 'accueil', icon: 'home' },
   { label: 'Parler à l\'IA', tab: 'chat', icon: 'smart_toy' },
@@ -123,7 +125,7 @@ function getAccessToken() {
 
 async function fetchProfile() {
   try {
-    const response = await fetch('http://localhost:3001/api/users/profile', {
+    const response = await fetch(`${apiUrl}/users/profile`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -138,7 +140,7 @@ async function fetchProfile() {
 
 async function fetchConversations() {
   try {
-    const response = await fetch('http://localhost:3001/api/chat/conversations', {
+    const response = await fetch(`${apiUrl}/chat/conversations`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -176,7 +178,7 @@ function handleEditProfile() {
 
 async function handleSaveProfile(newProfile) {
   try {
-    const response = await fetch('http://localhost:3001/api/users/profile', {
+    const response = await fetch(`${apiUrl}/users/profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -202,7 +204,7 @@ function handleDeleteConversation(conv) {
     return;
   }
 
-  fetch(`http://localhost:3001/api/chat/conversations/${conv.id}`, {
+  fetch(`${apiUrl}/chat/conversations/${conv.id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${getAccessToken()}`

@@ -105,6 +105,8 @@ import PromoCodes from '../components/admin/PromoCodes.vue'
 const router = useRouter()
 const activeTab = ref('accueil')
 
+const apiUrl = import.meta.env.VITE_API_URL
+
 const stats = ref({
   studentsCount: 0,
   messagesCount: 0,
@@ -136,7 +138,7 @@ async function fetchStats() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch('http://localhost:3001/api/admin/stats', {
+    const response = await fetch(`${apiUrl}/admin/stats`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -172,7 +174,7 @@ async function fetchUsers() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch('http://localhost:3001/api/admin/users', {
+    const response = await fetch(`${apiUrl}/admin/users`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -195,7 +197,7 @@ async function fetchUsers() {
 
 async function fetchKnowledgeDocuments() {
   try {
-    const response = await fetch('http://localhost:3001/api/admin/knowledge-documents', {
+    const response = await fetch(`${apiUrl}/admin/knowledge-documents`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -209,7 +211,7 @@ async function fetchKnowledgeDocuments() {
 
 async function fetchChats() {
   try {
-    const response = await fetch('http://localhost:3001/api/admin/chats', {
+    const response = await fetch(`${apiUrl}/admin/chats`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
@@ -225,7 +227,7 @@ async function fetchRecommendations() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch('http://localhost:3001/api/admin/recommandations', {
+    const response = await fetch(`${apiUrl}/admin/recommandations`, {
       headers: {
         'Authorization': `Bearer ${getAccessToken()}`
       }
