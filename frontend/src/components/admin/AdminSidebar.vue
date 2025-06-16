@@ -39,6 +39,7 @@ const navItems = [
   { label: 'Base de connaissances', tab: 'knowledge', icon: 'menu_book' },
   { label: 'Logs des conversations', tab: 'chats', icon: 'chat' },
   { label: 'Recommandations', tab: 'recommandations', icon: 'thumb_up' },
+  { label: 'Codes Promo', tab: 'promo', icon: 'local_offer' },
 ]
 
 defineEmits(['change-tab', 'logout'])

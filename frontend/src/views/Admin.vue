@@ -81,6 +81,11 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Codes Promo -->
+          <div v-show="activeTab === 'promo'">
+            <PromoCodes />
+          </div>
         </div>
       </div>
     </main>
@@ -95,6 +100,7 @@ import AdminStats from '../components/admin/AdminStats.vue'
 import UserList from '../components/admin/UserList.vue'
 import KnowledgeBase from '../components/admin/KnowledgeBase.vue'
 import ChatLogs from '../components/admin/ChatLogs.vue'
+import PromoCodes from '../components/admin/PromoCodes.vue'
 
 const router = useRouter()
 const activeTab = ref('accueil')

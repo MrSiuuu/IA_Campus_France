@@ -292,4 +292,88 @@ router.get('/recommandations', async (req, res) => {
   }
 })
 
+// Gérer les codes promo
+router.post('/promo-codes', async (req, res) => {
+  try {
+    const { code, token_amount, max_uses } = req.body;
+
+    // Validation des données
+    if (!code || !token_amount) {
+      return res.status(400).json({ error: 'Code et montant de tokens requis' });
+    }
+
+    // Vérifier si le code existe déjà
+    const { data: existingCode, error: checkError } = await supabase
+      .from('promo_codes')
+      .select('code')
+      .eq('code', code)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found
+      throw checkError;
+    }
+
+    if (existingCode) {
+      return res.status(400).json({ error: 'Ce code promo existe déjà' });
+    }
+
+    // Créer le nouveau code promo
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .insert([{
+        code,
+        token_amount,
+        max_uses: max_uses || null,
+        used_by: [],
+        is_active: true
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json(data);
+  } catch (error) {
+    console.error('Erreur lors de la création du code promo:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Lister tous les codes promo
+router.get('/promo-codes', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des codes promo:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Désactiver un code promo
+router.put('/promo-codes/:id/deactivate', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .update({ is_active: false })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Code promo non trouvé' });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Erreur lors de la désactivation du code promo:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 module.exports = router 

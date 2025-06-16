@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS conversations CASCADE;
 DROP TABLE IF EXISTS faq_docs CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS contact CASCADE;
+DROP TABLE IF EXISTS promo_codes CASCADE;
 
 DROP TYPE IF EXISTS user_role CASCADE;
 DROP TYPE IF EXISTS document_type CASCADE;
@@ -246,4 +247,53 @@ CREATE POLICY "Admin can view all contacts"
 CREATE POLICY "Anyone can insert contact"
     ON contact FOR INSERT
     TO public
-    WITH CHECK (true); 
+    WITH CHECK (true);
+
+-- 14. Table promo_codes
+CREATE TABLE promo_codes (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    token_amount INT NOT NULL,
+    max_uses INT DEFAULT NULL,
+    used_by UUID[] DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index pour promo_codes
+CREATE INDEX idx_promo_codes_code ON promo_codes(code);
+CREATE INDEX idx_promo_codes_used_by ON promo_codes USING GIN (used_by);
+
+-- Activation RLS pour promo_codes
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+
+-- Politique pour les admins
+CREATE POLICY "Admin can manage promo codes"
+ON promo_codes FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM users
+        WHERE users.id = auth.uid()
+        AND users.role = 'admin'
+    )
+);
+
+-- Politique pour les étudiants
+CREATE POLICY "Students can check specific promo code"
+ON promo_codes FOR SELECT
+USING (
+    is_active = true
+    AND EXISTS (
+        SELECT 1 FROM users
+        WHERE users.id = auth.uid()
+        AND users.role = 'student'
+    )
+    AND code = current_setting('app.current_promo_code', true)
+);
+
+-- Trigger pour updated_at
+CREATE TRIGGER update_promo_codes_updated_at
+    BEFORE UPDATE ON promo_codes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column(); 
