@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen flex bg-[#F5F7FA]">
+  <div class="min-h-screen flex flex-col bg-[#F5F7FA] md:flex-row">
     <!-- Sidebar -->
-    <aside class="w-64 bg-[#1E1E2F] text-white flex flex-col py-8 px-4 hidden md:flex">
+    <aside class="w-64 bg-[#1E1E2F] text-white flex-col py-8 px-4 hidden md:flex">
       <div class="mb-10 flex items-center justify-center">
         <span class="text-2xl font-bold tracking-wide">Espace Étudiant</span>
       </div>
@@ -25,21 +25,9 @@
       </button>
     </aside>
 
-    <!-- Barre d'onglets mobile en bas -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around md:hidden z-50">
-      <button v-for="item in navItems" :key="item.tab" @click="setTab(item.tab)" class="flex flex-col items-center py-2 flex-1" :class="activeTab === item.tab ? 'text-indigo-600' : 'text-gray-400'">
-        <span class="material-icons">{{ item.icon }}</span>
-        <span class="text-xs">{{ item.label }}</span>
-      </button>
-      <button @click="logout" class="flex flex-col items-center py-2 flex-1 text-red-500">
-        <span class="material-icons">logout</span>
-        <span class="text-xs">Déconnexion</span>
-      </button>
-    </nav>
-
     <!-- Main content -->
-    <main class="flex-1 p-10 bg-[#F5F7FA] min-h-screen">
-      <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="flex-1 p-4 md:p-10 bg-[#F5F7FA] pb-24 md:pb-10">
+      <div class="max-w-4xl mx-auto py-4 md:py-6 px-2 sm:px-6 lg:px-8">
         <!-- Accueil -->
         <div v-show="activeTab === 'accueil'">
           <h1 class="text-3xl font-bold mb-6 text-[#1F2937]">Bienvenue {{ profile.first_name }} !</h1>
@@ -86,18 +74,32 @@
         </div>
       </div>
     </main>
+
+    <!-- Barre d'onglets mobile en bas -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around md:hidden z-50">
+      <button v-for="item in navItems" :key="item.tab" @click="setTab(item.tab)" class="flex flex-col items-center py-2 flex-1" :class="activeTab === item.tab ? 'text-indigo-600' : 'text-gray-400'">
+        <span class="material-icons">{{ item.icon }}</span>
+        <span class="text-xs">{{ item.label }}</span>
+      </button>
+      <button @click="logout" class="flex flex-col items-center py-2 flex-1 text-red-500">
+        <span class="material-icons">logout</span>
+        <span class="text-xs">Déconnexion</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import DashboardStats from '../components/student/DashboardStats.vue'
 import DashboardActions from '../components/student/DashboardActions.vue'
 import ProfileCard from '../components/student/ProfileCard.vue'
 import EditProfileModal from '../components/student/EditProfileModal.vue'
 import ConversationList from '../components/student/ConversationList.vue'
 import TokensPanel from '../components/student/TokensPanel.vue'
+import axios from 'axios'
 
 const router = useRouter()
 const activeTab = ref('accueil')
@@ -106,6 +108,8 @@ const conversationsCount = ref(0)
 const showEditProfileModal = ref(false)
 
 const apiUrl = import.meta.env.VITE_API_URL
+
+const authStore = useAuthStore()
 
 const navItems = [
   { label: 'Accueil', tab: 'accueil', icon: 'home' },
@@ -141,32 +145,20 @@ function getAccessToken() {
 
 async function fetchProfile() {
   try {
-    const response = await fetch(`${apiUrl}/users/profile`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération du profil')
-    const data = await response.json()
-    profile.value = data
+    const response = await axios.get('/users/profile')
+    profile.value = response.data
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération du profil:', error)
   }
 }
 
 async function fetchConversations() {
   try {
-    const response = await fetch(`${apiUrl}/chat/conversations`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des conversations')
-    const data = await response.json()
-    conversations.value = data
-    conversationsCount.value = data.length
+    const response = await axios.get('/chat/conversations')
+    conversations.value = response.data
+    conversationsCount.value = response.data.length
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération des conversations:', error)
   }
 }
 
@@ -246,14 +238,21 @@ function handleTokensUpdated(newBalance) {
   profile.value.tokens_remaining = newBalance
 }
 
-function logout() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
+async function logout() {
+  try {
+    await authStore.logout()
+    router.push('/login')
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error)
+    // En cas d'erreur, on force quand même la déconnexion
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.push('/login')
+  }
 }
 
-onMounted(() => {
-  fetchProfile()
-  fetchConversations()
+onMounted(async () => {
+  await fetchProfile()
+  await fetchConversations()
 })
 </script> 

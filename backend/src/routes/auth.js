@@ -212,6 +212,26 @@ router.get('/conversations', async (req, res) => {
     }
 });
 
+// Route pour vérifier le token
+router.get('/verify-token', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ valid: false, error: 'Token manquant' });
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) {
+            return res.status(401).json({ valid: false, error: 'Token invalide' });
+        }
+
+        res.json({ valid: true, user });
+    } catch (error) {
+        console.error('Erreur lors de la vérification du token:', error);
+        res.status(401).json({ valid: false, error: 'Erreur serveur' });
+    }
+});
+
 // Route pour rafraîchir le token
 router.post('/refresh-token', async (req, res) => {
     try {
@@ -220,21 +240,32 @@ router.post('/refresh-token', async (req, res) => {
             return res.status(401).json({ error: 'Token manquant' });
         }
 
-        // Vérifier si le token est valide
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        if (userError) {
-            return res.status(401).json({ error: 'Token invalide' });
-        }
+        // Récupérer la session actuelle
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-        // Si le token est valide, on renvoie le même token
-        // Le frontend continuera à l'utiliser
-        res.json({ 
-            message: 'Token valide',
-            user: user
+        // Utiliser le refresh token pour obtenir une nouvelle session
+        const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession({
+            refresh_token: session.refresh_token
+        });
+        if (refreshError) throw refreshError;
+
+        // Récupérer les informations de l'utilisateur
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', newSession.user.id)
+            .single();
+
+        if (userError) throw userError;
+
+        res.json({
+            session: newSession,
+            user: userData
         });
     } catch (error) {
         console.error('Erreur lors du rafraîchissement du token:', error);
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(401).json({ error: 'Erreur lors du rafraîchissement du token' });
     }
 });
 

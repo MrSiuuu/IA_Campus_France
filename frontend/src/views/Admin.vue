@@ -101,11 +101,12 @@ import UserList from '../components/admin/UserList.vue'
 import KnowledgeBase from '../components/admin/KnowledgeBase.vue'
 import ChatLogs from '../components/admin/ChatLogs.vue'
 import PromoCodes from '../components/admin/PromoCodes.vue'
+import { useAuthStore } from '../stores/auth'
+import axios from '../config/axios'
 
 const router = useRouter()
 const activeTab = ref('accueil')
-
-const apiUrl = import.meta.env.VITE_API_URL
+const authStore = useAuthStore()
 
 const stats = ref({
   studentsCount: 0,
@@ -121,49 +122,28 @@ const recommandations = ref([])
 const loading = ref(false)
 const error = ref(null)
 
-function getAccessToken() {
-  const raw = localStorage.getItem('token')
-  if (!raw) return ''
-  try {
-    if (raw.trim().startsWith('{')) {
-      return JSON.parse(raw).access_token
-    }
-    return raw
-  } catch {
-    return raw
-  }
-}
-
 async function fetchStats() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${apiUrl}/admin/stats`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) {
-      if (response.status === 403) {
-        router.push('/login')
-        return
-      }
-      throw new Error('Erreur lors de la récupération des statistiques')
-    }
-    const data = await response.json()
+    const response = await axios.get('/admin/stats')
     stats.value = {
-      studentsCount: data.totalStudents,
-      messagesCount: data.totalMessages,
-      tokensConsumed: data.totalTokens,
-      sharedDocumentsCount: data.sharedDocuments,
-      monthlyStudents: data.monthlyStudents,
-      messagesByDay: data.messagesByDay,
-      documentTypes: data.documentTypes,
-      userActivity: data.userActivity,
-      tokenDistribution: data.tokenDistribution
+      studentsCount: response.data.totalStudents,
+      messagesCount: response.data.totalMessages,
+      tokensConsumed: response.data.totalTokens,
+      sharedDocumentsCount: response.data.sharedDocuments,
+      monthlyStudents: response.data.monthlyStudents,
+      messagesByDay: response.data.messagesByDay,
+      documentTypes: response.data.documentTypes,
+      userActivity: response.data.userActivity,
+      tokenDistribution: response.data.tokenDistribution
     }
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération des statistiques:', error)
+    if (error.response?.status === 403) {
+      router.push('/login')
+      return
+    }
     error.value = error.message
   } finally {
     loading.value = false
@@ -174,21 +154,14 @@ async function fetchUsers() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${apiUrl}/admin/users`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) {
-      if (response.status === 403) {
-        router.push('/login')
-        return
-      }
-      throw new Error('Erreur lors de la récupération des utilisateurs')
-    }
-    users.value = await response.json()
+    const response = await axios.get('/admin/users')
+    users.value = response.data
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération des utilisateurs:', error)
+    if (error.response?.status === 403) {
+      router.push('/login')
+      return
+    }
     error.value = error.message
   } finally {
     loading.value = false
@@ -197,29 +170,19 @@ async function fetchUsers() {
 
 async function fetchKnowledgeDocuments() {
   try {
-    const response = await fetch(`${apiUrl}/admin/knowledge-documents`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des documents de la base de connaissances')
-    knowledgeDocuments.value = await response.json()
+    const response = await axios.get('/admin/knowledge-documents')
+    knowledgeDocuments.value = response.data
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération des documents:', error)
   }
 }
 
 async function fetchChats() {
   try {
-    const response = await fetch(`${apiUrl}/admin/chats`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des conversations')
-    chats.value = await response.json()
+    const response = await axios.get('/admin/chats')
+    chats.value = response.data
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur lors de la récupération des conversations:', error)
   }
 }
 
@@ -227,16 +190,11 @@ async function fetchRecommendations() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${apiUrl}/admin/recommandations`, {
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`
-      }
-    })
-    if (!response.ok) throw new Error('Erreur lors de la récupération des recommandations')
-    recommandations.value = await response.json()
-  } catch (err) {
-    console.error('Erreur:', err)
-    error.value = err.message
+    const response = await axios.get('/admin/recommandations')
+    recommandations.value = response.data
+  } catch (error) {
+    console.error('Erreur lors de la récupération des recommandations:', error)
+    error.value = error.message
   } finally {
     loading.value = false
   }
@@ -246,10 +204,10 @@ function setTab(tab) {
   activeTab.value = tab
   error.value = null
   if (tab === 'accueil') fetchStats()
-  if (tab === 'users') fetchUsers()
-  if (tab === 'knowledge') fetchKnowledgeDocuments()
-  if (tab === 'chats') fetchChats()
-  if (tab === 'recommandations') fetchRecommendations()
+  else if (tab === 'users') fetchUsers()
+  else if (tab === 'knowledge') fetchKnowledgeDocuments()
+  else if (tab === 'chats') fetchChats()
+  else if (tab === 'recommandations') fetchRecommendations()
 }
 
 function handleEditUser(user) {
@@ -293,7 +251,12 @@ function logout() {
   router.push('/login')
 }
 
-onMounted(() => {
-  fetchStats()
+// Chargement initial des données
+onMounted(async () => {
+  await fetchStats()
+  await fetchUsers()
+  await fetchKnowledgeDocuments()
+  await fetchChats()
+  await fetchRecommendations()
 })
 </script> 

@@ -163,6 +163,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useAuthStore } from '../stores/auth'
 import { marked } from 'marked'
+import axios from '../config/axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -185,19 +186,36 @@ const createError = ref('')
 const originalTitle = ref('')
 const editInput = ref(null)
 
-const API_URL = import.meta.env.VITE_API_URL
-
 onMounted(async () => {
-  await loadConversations()
-  await loadUserTokens()
-  adjustTextareaHeight()
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
+  try {
+    // Vérifier l'authentification d'abord
+    await authStore.checkAuth()
+    
+    if (!authStore.isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    
+    // Charger les données en parallèle
+    await Promise.all([
+      loadConversations(),
+      loadUserTokens()
+    ])
+    
+    adjustTextareaHeight()
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
 
-  const convId = route.query.conv
-  if (convId && conversations.value.length > 0) {
-    const found = conversations.value.find(c => String(c.id) === String(convId))
-    if (found) selectConversation(found.id)
+    const convId = route.query.conv
+    if (convId && conversations.value.length > 0) {
+      const found = conversations.value.find(c => String(c.id) === String(convId))
+      if (found) selectConversation(found.id)
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement initial:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   }
 })
 
@@ -213,10 +231,12 @@ function checkMobile() {
   isMobile.value = window.innerWidth < 768
   if (window.innerWidth >= 768) sidebarOpen.value = false
 }
+
 function openSidebar() {
   sidebarOpen.value = true
   document.body.style.overflow = 'hidden'
 }
+
 function closeSidebar() {
   sidebarOpen.value = false
   document.body.style.overflow = ''
@@ -224,44 +244,62 @@ function closeSidebar() {
 
 async function loadUserTokens() {
   try {
-    const response = await fetch(`${API_URL}/users/tokens`, {
-      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
-    })
-    if (!response.ok) throw new Error('Erreur chargement tokens')
-    const data = await response.json()
-    tokensRemaining.value = data.tokens_remaining
-  } catch (e) {
-    console.error(e)
+    if (!authStore.isAuthenticated) {
+      await authStore.checkAuth()
+      if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+      }
+    }
+    const response = await axios.get('/users/tokens')
+    tokensRemaining.value = response.data.tokens_remaining
+  } catch (error) {
+    console.error('Erreur lors du chargement des tokens:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   }
 }
 
 async function loadConversations() {
   try {
-    const res = await fetch(`${API_URL}/chat/conversations`, {
-      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
-    })
-    if (!res.ok) throw new Error('Erreur chargement conversations')
-    const data = await res.json()
-    conversations.value = data.map(conv => ({ ...conv, isEditing: false }))
-  } catch (e) {
-    console.error(e)
+    if (!authStore.isAuthenticated) {
+      await authStore.checkAuth()
+      if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+      }
+    }
+    const response = await axios.get('/chat/conversations')
+    conversations.value = response.data.map(conv => ({ ...conv, isEditing: false }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des conversations:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   }
 }
 
 async function selectConversation(id) {
   if (!id) return
   try {
-    const res = await fetch(`${API_URL}/chat/conversations/${id}/messages`, {
-      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
-    })
-    if (!res.ok) throw new Error('Erreur chargement messages')
-    const data = await res.json()
+    if (!authStore.isAuthenticated) {
+      await authStore.checkAuth()
+      if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+      }
+    }
+    const res = await axios.get(`/chat/conversations/${id}/messages`)
     activeConv.value = id
-    messages.value = data
+    messages.value = res.data
     await nextTick()
     scrollToBottom()
-  } catch (e) {
-    console.error(e)
+  } catch (error) {
+    console.error('Erreur lors du chargement des messages:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   }
 }
 
@@ -289,25 +327,16 @@ async function confirmCreateConversation() {
     return
   }
   try {
-    const res = await fetch(`${API_URL}/chat/conversations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.session?.access_token}`
-      },
-      body: JSON.stringify({ title: newConvTitle.value })
-    })
-    if (!res.ok) throw new Error('Erreur création conversation')
-    const data = await res.json()
-    conversations.value.unshift({ ...data, isEditing: false })
-    activeConv.value = data.id
+    const res = await axios.post('/chat/conversations', { title: newConvTitle.value })
+    conversations.value.unshift({ ...res.data, isEditing: false })
+    activeConv.value = res.data.id
     messages.value = []
     showCreateModal.value = false
     newConvTitle.value = ''
     createError.value = ''
     closeSidebar()
   } catch (e) {
-    createError.value = e.message
+    createError.value = e.response?.data?.message || 'Erreur lors de la création de la conversation'
   }
 }
 
@@ -329,22 +358,13 @@ async function sendMessage() {
   messages.value.push({ role: 'user', content: message })
   scrollToBottom()
   try {
-    const res = await fetch(`${API_URL}/chat/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.session?.access_token}`
-      },
-      body: JSON.stringify({ conversation_id: activeConv.value, content: message })
-    })
-    if (!res.ok) throw new Error('Erreur envoi message')
-    const data = await res.json()
-    messages.value.push({ role: 'assistant', content: data.message })
-    tokensRemaining.value = data.tokens_remaining
+    const res = await axios.post('/chat/messages', { conversation_id: activeConv.value, content: message })
+    messages.value.push({ role: 'assistant', content: res.data.message })
+    tokensRemaining.value = res.data.tokens_remaining
     scrollToBottom()
   } catch (e) {
     input.value = message
-    alert(e.message)
+    alert(e.response?.data?.message || 'Erreur lors de l\'envoi du message')
   } finally {
     isLoading.value = false
   }
@@ -375,14 +395,7 @@ async function handleRename(conv) {
       return
     }
 
-    const res = await fetch(`${API_URL}/chat/conversations/${conv.id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${authStore.session?.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ title: conv.title.trim() })
-    })
+    const res = await axios.put(`/chat/conversations/${conv.id}`, { title: conv.title.trim() })
 
     if (!res.ok) {
       conv.title = originalTitle.value

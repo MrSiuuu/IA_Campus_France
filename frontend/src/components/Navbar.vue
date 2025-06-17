@@ -60,7 +60,7 @@
                 </router-link>
               </li>
               <li>
-                <button @click="handleLogout; closeDrawer()" class="btn btn-ghost w-full">Se déconnecter</button>
+                <button @click="async () => { await handleLogout(); closeDrawer(); }" class="btn btn-ghost w-full">Se déconnecter</button>
               </li>
             </template>
           </ul>
@@ -76,6 +76,7 @@ import { useAuthStore } from '../stores/auth'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import axios from 'axios'
 
 const auth = useAuthStore()
 const userStore = useUserStore()
@@ -95,33 +96,13 @@ function closeDrawer() {
 
 const handleLogout = async () => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      auth.logout()
-      router.push('/login')
-      return
-    }
-
-    const session = JSON.parse(token)
-    const response = await fetch(`${apiUrl}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      }
-    })
-
-    if (response.ok) {
-      auth.logout()
-      router.push('/login')
-    } else {
-      // Si la requête échoue, on déconnecte quand même l'utilisateur localement
-      auth.logout()
-      router.push('/login')
-    }
+    await auth.logout()
+    router.push('/login')
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error)
-    // En cas d'erreur, on déconnecte quand même l'utilisateur localement
-    auth.logout()
+    // En cas d'erreur, on force la déconnexion locale
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     router.push('/login')
   }
 }
