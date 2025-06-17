@@ -5,9 +5,9 @@
       <button @click="$emit('navigate', 'chat')" class="w-full text-left px-6 py-4 bg-white text-[#6366F1] rounded-xl hover:bg-[#F5F7FA] transition-all duration-300 border-2 border-[#6366F1] hover:border-[#4F46E5] shadow-sm hover:shadow-md">
         🧠 Parler à l'IA
       </button>
-      <button @click="$emit('navigate', 'documents')" class="w-full text-left px-6 py-4 bg-white text-[#6366F1] rounded-xl hover:bg-[#F5F7FA] transition-all duration-300 border-2 border-[#6366F1] hover:border-[#4F46E5] shadow-sm hover:shadow-md">
+      <!-- <button @click="$emit('navigate', 'documents')" class="w-full text-left px-6 py-4 bg-white text-[#6366F1] rounded-xl hover:bg-[#F5F7FA] transition-all duration-300 border-2 border-[#6366F1] hover:border-[#4F46E5] shadow-sm hover:shadow-md">
         📁 Gérer mes documents
-      </button>
+      </button> -->
       <button @click="$emit('navigate', 'conversations')" class="w-full text-left px-6 py-4 bg-white text-[#6366F1] rounded-xl hover:bg-[#F5F7FA] transition-all duration-300 border-2 border-[#6366F1] hover:border-[#4F46E5] shadow-sm hover:shadow-md">
         📜 Voir mes conversations
       </button>

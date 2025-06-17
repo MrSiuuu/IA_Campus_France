@@ -78,7 +78,11 @@
         <!-- Onglet Mes tokens -->
         <div v-show="activeTab === 'tokens'">
           <h2 class="text-2xl font-bold mb-6 text-[#1F2937]">Mes tokens</h2>
-          <TokensPanel :tokens="profile.tokens_remaining" @buy="handleBuyTokens" />
+          <TokensPanel 
+            :tokens="profile.tokens_remaining" 
+            @buy="handleBuyTokens"
+            @tokens-updated="handleTokensUpdated"
+          />
         </div>
       </div>
     </main>
@@ -236,6 +240,10 @@ function handleDeleteConversation(conv) {
 function handleBuyTokens() {
   // Ici tu peux ouvrir une modale, rediriger vers une page de paiement, etc.
   alert('Fonctionnalité à venir : achat/augmentation de tokens !')
+}
+
+function handleTokensUpdated(newBalance) {
+  profile.value.tokens_remaining = newBalance
 }
 
 function logout() {

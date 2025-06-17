@@ -34,7 +34,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import axios from '../../config/axios'
 
 const props = defineProps({
   tokens: {
@@ -67,6 +67,8 @@ const redeemPromo = async () => {
 
     success.value = `Code promo validé ! ${response.data.tokens_awarded} tokens ajoutés à votre compte.`
     promoCode.value = ''
+    
+    // Forcer la mise à jour des tokens
     emit('tokens-updated', response.data.new_balance)
   } catch (err) {
     error.value = err.response?.data?.error || 'Une erreur est survenue'

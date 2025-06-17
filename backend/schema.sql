@@ -296,4 +296,10 @@ USING (
 CREATE TRIGGER update_promo_codes_updated_at
     BEFORE UPDATE ON promo_codes
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Permettre l'insertion à tous dans la table users
+CREATE POLICY "Anyone can insert users"
+    ON users FOR INSERT
+    TO public
+    WITH CHECK (true); 

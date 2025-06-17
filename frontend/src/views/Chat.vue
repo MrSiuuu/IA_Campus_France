@@ -1,54 +1,65 @@
-/**
- * Composant Chat.vue
- * Interface principale de chat avec l'IA Campus France
- * Gère les conversations, les messages et l'interaction utilisateur
- */
-
 <template>
-  <div class="min-h-screen flex bg-base-200">
+  <div class="min-h-screen flex bg-base-200 relative">
+    <!-- Overlay pour mobile -->
+    <div 
+      v-show="isMobile && sidebarOpen" 
+      class="fixed inset-0 bg-black/50 z-30 pointer-events-auto"
+      @click="closeSidebar"
+    ></div>
+
     <!-- Sidebar : Liste des conversations -->
     <aside
       class="w-72 bg-base-300 text-base-content flex flex-col p-4 border-r border-base-100
-      max-md:fixed max-md:top-0 max-md:left-0 max-md:h-full max-md:z-40 max-md:shadow-lg max-md:transition-transform max-md:duration-300
-      max-md:translate-x-[-100%]"
-      :class="{ 'max-md:translate-x-0': sidebarOpen }"
-      v-show="!isMobile || sidebarOpen"
+      max-md:fixed max-md:top-0 max-md:left-0 max-md:h-screen max-md:w-[80%] max-md:z-40 
+      max-md:shadow-lg max-md:transition-all max-md:duration-300 max-md:ease-in-out pointer-events-auto"
+      :class="{ 'max-md:translate-x-0': sidebarOpen, 'max-md:translate-x-[-100%]': !sidebarOpen }"
+      @click.stop
     >
       <!-- En-tête de la sidebar -->
       <div class="mb-6 flex items-center justify-between">
         <span class="text-xl font-bold tracking-wide">Conversations</span>
-        <button class="btn btn-sm btn-ghost" @click="closeSidebar" v-if="isMobile">
+        <button class="btn btn-sm btn-ghost md:hidden" @click.stop="closeSidebar">
           <span class="material-icons">close</span>
         </button>
-        <button class="btn btn-sm btn-ghost" @click="goDashboard" v-else>
-          <span class="material-icons">arrow_back</span>
-        </button>
       </div>
+
       <!-- Liste des conversations -->
       <ul class="flex-1 overflow-y-auto space-y-2">
-        <li v-for="conv in conversations" :key="conv.id">
-          <button class="btn btn-block btn-ghost justify-start" :class="{ 'bg-primary text-primary-content': conv.id === activeConv }" @click="selectConversation(conv.id); closeSidebar()">
+        <li v-for="conv in conversations" :key="conv.id" class="w-full">
+          <button 
+            class="btn btn-block btn-ghost justify-start w-full flex items-center gap-2" 
+            @click.stop="handleConversationClick(conv.id)"
+          >
             <div class="flex w-full items-center gap-2">
-              <!-- Champ d'édition du titre -->
               <input
                 v-if="conv.isEditing"
                 v-model="conv.title"
-                @keyup.enter="renameConversation(conv)"
-                @blur="renameConversation(conv)"
+                @keyup.enter.stop="handleRename(conv)"
+                @blur.stop="handleRename(conv)"
                 class="input input-sm input-bordered flex-1"
-                autofocus
+                placeholder="Nom de la conversation"
+                ref="editInput"
                 @click.stop
               />
               <span v-else class="truncate flex-1">{{ conv.title }}</span>
-              <button class="btn btn-xs btn-ghost" @click.stop="toggleEdit(conv)">
+              <button 
+                class="btn btn-xs btn-ghost" 
+                @click.stop="startEdit(conv)"
+              >
                 <span class="material-icons text-sm">edit</span>
               </button>
             </div>
           </button>
         </li>
       </ul>
+
       <!-- Bouton nouvelle conversation -->
-      <button class="btn btn-block btn-primary mt-4" @click="newConversation">+ Nouvelle conversation</button>
+      <button 
+        class="btn btn-block btn-primary mt-4 w-full" 
+        @click.stop="handleNewConversation"
+      >
+        + Nouvelle conversation
+      </button>
     </aside>
 
     <!-- Zone principale de chat -->
@@ -56,7 +67,10 @@
       <!-- En-tête avec informations utilisateur -->
       <div class="flex items-center justify-between p-4 border-b border-base-100 bg-base-200">
         <div class="flex items-center gap-2">
-          <button class="btn btn-ghost btn-sm md:hidden" @click="openSidebar">
+          <button 
+            class="btn btn-ghost btn-sm md:hidden" 
+            @click="openSidebar"
+          >
             <span class="material-icons">menu</span>
           </button>
           <h2 class="text-2xl font-bold">Chat IA Campus France</h2>
@@ -69,7 +83,6 @@
 
       <!-- Zone des messages -->
       <div class="flex-1 overflow-y-auto p-2 md:p-6 space-y-2 md:space-y-4 bg-base-200" ref="messagesContainer">
-        <!-- Messages de la conversation -->
         <div v-for="msg in messages" :key="msg.id" class="chat" :class="msg.role === 'user' ? 'chat-end' : 'chat-start'">
           <div class="chat-image avatar">
             <div class="w-10 rounded-full bg-base-300 flex items-center justify-center">
@@ -82,7 +95,6 @@
             <div v-else v-html="renderMarkdown(msg.content)"></div>
           </div>
         </div>
-        <!-- Indicateur de chargement -->
         <div v-if="isLoading" class="chat chat-start">
           <div class="chat-image avatar">
             <div class="w-10 rounded-full bg-base-300 flex items-center justify-center">
@@ -95,7 +107,7 @@
         </div>
       </div>
 
-      <!-- Zone de saisie des messages -->
+      <!-- Zone de saisie -->
       <form class="p-2 md:p-4 flex gap-2 border-t border-base-100 bg-base-300" @submit.prevent="sendMessage">
         <div class="flex-1 relative">
           <textarea 
@@ -119,13 +131,15 @@
           Envoyer
         </button>
       </form>
+
+      <!-- Message si plus de tokens -->
       <div v-if="tokensRemaining !== null && tokensRemaining <= 0" class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 mt-2 flex items-center justify-between">
         <span>Vous n'avez plus de tokens. Veuillez augmenter votre solde pour continuer à discuter avec l'IA.</span>
         <button class="ml-4 px-4 py-2 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-semibold" @click="goBuyTokens">Augmenter mes tokens</button>
       </div>
     </main>
 
-    <!-- Modale de création de conversation -->
+    <!-- Modale de création -->
     <div v-if="showCreateModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
       <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-11/12 max-w-sm mx-auto">
         <h3 class="text-lg sm:text-xl font-bold mb-4 text-black">Nouvelle conversation</h3>
@@ -144,22 +158,17 @@
 </template>
 
 <script setup>
-/**
- * Imports des dépendances Vue et des stores
- */
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useAuthStore } from '../stores/auth'
 import { marked } from 'marked'
 
-/**
- * Initialisation des variables et stores
- */
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const authStore = useAuthStore()
+
 const messagesContainer = ref(null)
 const conversations = ref([])
 const activeConv = ref(null)
@@ -173,12 +182,11 @@ const isMobile = ref(false)
 const showCreateModal = ref(false)
 const newConvTitle = ref('')
 const createError = ref('')
+const originalTitle = ref('')
+const editInput = ref(null)
 
-/**
- * Chargement initial des données
- * - Liste des conversations
- * - Tokens disponibles
- */
+const API_URL = import.meta.env.VITE_API_URL
+
 onMounted(async () => {
   await loadConversations()
   await loadUserTokens()
@@ -186,84 +194,89 @@ onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
-  // Sélection automatique de la conversation si paramètre conv présent
   const convId = route.query.conv
   if (convId && conversations.value.length > 0) {
     const found = conversations.value.find(c => String(c.id) === String(convId))
-    if (found) {
-      selectConversation(found.id)
-    }
+    if (found) selectConversation(found.id)
   }
 })
 
-/**
- * Charge le nombre de tokens restants de l'utilisateur
- * Appelle l'API /api/users/tokens
- */
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
+watch(messages, () => {
+  scrollToBottom()
+})
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768
+  if (window.innerWidth >= 768) sidebarOpen.value = false
+}
+function openSidebar() {
+  sidebarOpen.value = true
+  document.body.style.overflow = 'hidden'
+}
+function closeSidebar() {
+  sidebarOpen.value = false
+  document.body.style.overflow = ''
+}
+
 async function loadUserTokens() {
   try {
     const response = await fetch(`${API_URL}/users/tokens`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.session?.access_token}`
-      }
+      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
     })
-    if (!response.ok) throw new Error('Erreur lors du chargement des tokens')
+    if (!response.ok) throw new Error('Erreur chargement tokens')
     const data = await response.json()
     tokensRemaining.value = data.tokens_remaining
-  } catch (error) {
-    console.error('Erreur lors du chargement des tokens:', error)
+  } catch (e) {
+    console.error(e)
   }
 }
 
-/**
- * Charge la liste des conversations de l'utilisateur
- * Appelle l'API /api/chat/conversations
- * Sélectionne automatiquement la première conversation si disponible
- */
 async function loadConversations() {
   try {
-    const response = await fetch(`${API_URL}/chat/conversations`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.session?.access_token}`
-      }
+    const res = await fetch(`${API_URL}/chat/conversations`, {
+      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
     })
-    if (!response.ok) throw new Error('Erreur lors du chargement des conversations')
-    const data = await response.json()
+    if (!res.ok) throw new Error('Erreur chargement conversations')
+    const data = await res.json()
     conversations.value = data.map(conv => ({ ...conv, isEditing: false }))
-    // Suppression de la sélection automatique ici
-    // if (data.length > 0) {
-    //   selectConversation(data[0].id)
-    // }
-  } catch (error) {
-    console.error('Erreur lors du chargement des conversations:', error)
+  } catch (e) {
+    console.error(e)
   }
 }
 
-/**
- * Sélectionne une conversation et charge ses messages
- * @param {number} id - ID de la conversation à sélectionner
- */
 async function selectConversation(id) {
-  activeConv.value = id
+  if (!id) return
   try {
-    const response = await fetch(`${API_URL}/chat/conversations/${id}/messages`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.session?.access_token}`
-      }
+    const res = await fetch(`${API_URL}/chat/conversations/${id}/messages`, {
+      headers: { 'Authorization': `Bearer ${authStore.session?.access_token}` }
     })
-    if (!response.ok) throw new Error('Erreur lors du chargement des messages')
-    const data = await response.json()
+    if (!res.ok) throw new Error('Erreur chargement messages')
+    const data = await res.json()
+    activeConv.value = id
     messages.value = data
+    await nextTick()
     scrollToBottom()
-  } catch (error) {
-    console.error('Erreur lors du chargement des messages:', error)
+  } catch (e) {
+    console.error(e)
   }
 }
 
-/**
- * Crée une nouvelle conversation
- * Appelle l'API POST /api/chat/conversations
- */
+async function handleConversationClick(id) {
+  await selectConversation(id)
+  if (isMobile.value) closeSidebar()
+}
+
+function handleNewConversation(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  newConversation()
+  if (isMobile.value) closeSidebar()
+}
+
 async function newConversation() {
   showCreateModal.value = true
   newConvTitle.value = ''
@@ -276,24 +289,25 @@ async function confirmCreateConversation() {
     return
   }
   try {
-    const response = await fetch(`${API_URL}/chat/conversations`, {
+    const res = await fetch(`${API_URL}/chat/conversations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.session?.access_token}`
       },
       body: JSON.stringify({ title: newConvTitle.value })
-    });
-    if (!response.ok) throw new Error('Erreur lors de la création de la conversation');
-    const data = await response.json();
-    conversations.value.unshift({ ...data, isEditing: false });
-    activeConv.value = data.id;
-    messages.value = [];
+    })
+    if (!res.ok) throw new Error('Erreur création conversation')
+    const data = await res.json()
+    conversations.value.unshift({ ...data, isEditing: false })
+    activeConv.value = data.id
+    messages.value = []
     showCreateModal.value = false
     newConvTitle.value = ''
     createError.value = ''
-  } catch (error) {
-    createError.value = error.message || 'Erreur lors de la création de la conversation.'
+    closeSidebar()
+  } catch (e) {
+    createError.value = e.message
   }
 }
 
@@ -303,179 +317,124 @@ function cancelCreateConversation() {
   createError.value = ''
 }
 
-/**
- * Envoie un message à l'IA et gère la réponse
- * Appelle l'API POST /api/chat/messages
- */
 async function sendMessage() {
-  if (!input.value.trim() || isLoading.value || tokensRemaining.value <= 0) return;
-
-  // Si aucune conversation n'est active, on en crée une
+  if (!input.value.trim() || isLoading.value || tokensRemaining.value <= 0) return
   if (!activeConv.value) {
-    await newConversation();
-    if (!activeConv.value) return; // Si la création a échoué
+    await newConversation()
+    if (!activeConv.value) return
   }
-
-  const message = input.value;
-  input.value = '';
-  isLoading.value = true;
-
-  // Ajouter immédiatement le message de l'utilisateur
-  messages.value.push({ role: 'user', content: message });
-  scrollToBottom();
-
+  const message = input.value
+  input.value = ''
+  isLoading.value = true
+  messages.value.push({ role: 'user', content: message })
+  scrollToBottom()
   try {
-    console.log('Envoi du message:', {
-      conversation_id: activeConv.value,
-      content: message
-    });
-
-    const response = await fetch(`${API_URL}/chat/messages`, {
+    const res = await fetch(`${API_URL}/chat/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.session?.access_token}`
       },
-      body: JSON.stringify({
-        conversation_id: activeConv.value,
-        content: message
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erreur lors de l\'envoi du message');
-    }
-    
-    const data = await response.json();
-    console.log('Réponse reçue:', data);
-
-    // Ajouter seulement la réponse de l'assistant
-    messages.value.push({ role: 'assistant', content: data.message });
-    tokensRemaining.value = data.tokens_remaining;
-    scrollToBottom();
-  } catch (error) {
-    console.error('Erreur lors de l\'envoi du message:', error);
-    input.value = message; // Restaurer le message en cas d'erreur
-    alert(error.message); // Afficher l'erreur à l'utilisateur
+      body: JSON.stringify({ conversation_id: activeConv.value, content: message })
+    })
+    if (!res.ok) throw new Error('Erreur envoi message')
+    const data = await res.json()
+    messages.value.push({ role: 'assistant', content: data.message })
+    tokensRemaining.value = data.tokens_remaining
+    scrollToBottom()
+  } catch (e) {
+    input.value = message
+    alert(e.message)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-
   nextTick(() => {
-    if (textareaInput.value) {
-      textareaInput.value.style.height = '2.5rem'
+    if (textareaInput.value) textareaInput.value.style.height = '2.5rem'
+  })
+}
+
+function startEdit(conv) {
+  originalTitle.value = conv.title
+  conversations.value.forEach(c => {
+    if (c.id !== conv.id) c.isEditing = false
+  })
+  conv.isEditing = true
+  nextTick(() => {
+    if (editInput.value) {
+      editInput.value.focus()
+      editInput.value.select()
     }
   })
 }
 
-/**
- * Fait défiler la zone de messages vers le bas
- * Utilisé après l'ajout de nouveaux messages
- */
-async function scrollToBottom() {
-  nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-    }
-  });
-}
-
-/**
- * Active/désactive le mode édition d'une conversation
- * @param {Object} conv - La conversation à éditer
- */
-function toggleEdit(conv) {
-  conversations.value.forEach(c => (c.isEditing = false))
-  conv.isEditing = true
-}
-
-/**
- * Renomme une conversation
- * @param {Object} conv - La conversation à renommer
- */
-async function renameConversation(conv) {
-  if (!conv.title.trim()) {
-    conv.title = 'Nouvelle conversation'
-  }
-  conv.isEditing = false
+async function handleRename(conv) {
   try {
-    const response = await fetch(`${API_URL}/chat/conversations/${conv.id}`, {
+    if (!conv.title.trim() || conv.title === originalTitle.value) {
+      conv.title = originalTitle.value
+      conv.isEditing = false
+      return
+    }
+
+    const res = await fetch(`${API_URL}/chat/conversations/${conv.id}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${userStore.token}`,
+        'Authorization': `Bearer ${authStore.session?.access_token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ title: conv.title })
+      body: JSON.stringify({ title: conv.title.trim() })
     })
-    if (!response.ok) throw new Error('Erreur de renommage')
-  } catch (error) {
-    console.error("Erreur lors du renommage :", error)
+
+    if (!res.ok) {
+      conv.title = originalTitle.value
+      throw new Error('Erreur lors du renommage')
+    }
+
+    conv.isEditing = false
+  } catch (e) {
+    console.error(e)
+    conv.title = originalTitle.value
+    conv.isEditing = false
   }
 }
 
-/**
- * Surveille les changements de messages pour le défilement automatique
- */
-watch(messages, () => {
-  scrollToBottom()
-})
+function scrollToBottom() {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
 
-/**
- * Navigation vers le dashboard
- */
-function goDashboard() {
-  router.push('/dashboard')
+function adjustTextareaHeight() {
+  const t = textareaInput.value
+  if (t) {
+    t.style.height = '0'
+    t.style.height = Math.min(t.scrollHeight, 200) + 'px'
+  }
 }
 
 function renderMarkdown(text) {
   return marked.parse(text || '')
 }
 
-// Ajuster automatiquement la hauteur du textarea
-function adjustTextareaHeight() {
-  const textarea = textareaInput.value
-  if (textarea) {
-    textarea.style.height = '0'
-    const scrollHeight = textarea.scrollHeight
-    textarea.style.height = Math.min(scrollHeight, 200) + 'px' // Maximum 200px
-  }
-}
-
-function checkMobile() {
-  isMobile.value = window.innerWidth < 768
-}
-function openSidebar() {
-  sidebarOpen.value = true
-}
-function closeSidebar() {
-  sidebarOpen.value = false
+function goDashboard() {
+  router.push('/dashboard')
 }
 
 function goBuyTokens() {
-  // Redirige vers l'onglet tokens du dashboard
   router.push('/dashboard?tab=tokens')
 }
-
-const API_URL = import.meta.env.VITE_API_URL
 </script>
 
 <style scoped>
-/**
- * Styles pour les icônes Material Icons
- */
 .material-icons {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: normal;
   font-size: 24px;
   line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
   display: inline-block;
-  white-space: nowrap;
-  direction: ltr;
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
-</style> 
+</style>
