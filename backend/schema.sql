@@ -1,3 +1,28 @@
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+-- Restaurer les permissions par défaut pour les rôles internes de Supabase.
+-- C'est crucial après avoir supprimé et recréé le schéma.
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON SCHEMA public TO postgres;
+
+-- Le service_role (utilisé par votre backend) a besoin d'un accès complet aux objets
+-- créés dans le schéma. Ces commandes garantissent que toutes les nouvelles tables,
+-- séquences ou fonctions seront accessibles par votre backend.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO service_role;
+
+-- Accorder également des droits au rôle postgres, qui possède les objets
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres;
+
+-- Accorder l'accès au rôle public
+GRANT ALL ON SCHEMA public TO public;
+
 DROP TABLE IF EXISTS payments CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
@@ -131,28 +156,55 @@ ALTER TABLE faq_docs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view their own data" ON users;
 DROP POLICY IF EXISTS "Admin can view all users" ON users;
 DROP POLICY IF EXISTS "view all" ON users;
+DROP POLICY IF EXISTS "Admin or self can view users" ON users;
+DROP POLICY IF EXISTS "Admin or self can update users" ON users;
+DROP POLICY IF EXISTS "Service role bypass RLS" ON users;
+DROP POLICY IF EXISTS "Auth can read users" ON users;
+DROP POLICY IF EXISTS "Users can manage their own data" ON users;
+DROP POLICY IF EXISTS "Admins can manage all users" ON users;
 
 -- Vue pour les rôles utilisateurs (évite la récursion)
-CREATE OR REPLACE VIEW public_user_roles AS
+DROP VIEW IF EXISTS public_user_roles;
+CREATE VIEW public_user_roles AS
 SELECT id, role FROM users;
 
-CREATE POLICY "Admin or self can view users"
-    ON users FOR SELECT
+-- Politique pour le service_role (bypass complet)
+CREATE POLICY "Service role bypass RLS"
+    ON users
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- Politique pour l'authentification de base (permet la lecture pour la connexion)
+CREATE POLICY "Auth can read users"
+    ON users
+    FOR SELECT
+    TO authenticated
     USING (
-        auth.uid() = id
+        auth.uid() = id 
         OR EXISTS (
-            SELECT 1 FROM public_user_roles r
-            WHERE r.id = auth.uid() AND r.role = 'admin'
+            SELECT 1 FROM public_user_roles
+            WHERE id = auth.uid() AND role = 'admin'
         )
     );
 
-CREATE POLICY "Admin or self can update users"
-    ON users FOR UPDATE
+-- Politique pour les utilisateurs authentifiés (gestion de leurs propres données)
+CREATE POLICY "Users can manage their own data"
+    ON users
+    FOR ALL
+    TO authenticated
     USING (
-        auth.uid() = id
+        auth.uid() = id 
         OR EXISTS (
-            SELECT 1 FROM public_user_roles r
-            WHERE r.id = auth.uid() AND r.role = 'admin'
+            SELECT 1 FROM public_user_roles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    )
+    WITH CHECK (
+        auth.uid() = id 
+        OR EXISTS (
+            SELECT 1 FROM public_user_roles
+            WHERE id = auth.uid() AND role = 'admin'
         )
     );
 
@@ -189,19 +241,6 @@ CREATE POLICY "Admin or self can view documents"
     ON documents FOR SELECT
     USING (
         user_id = auth.uid()
-        OR EXISTS (
-            SELECT 1 FROM public_user_roles r
-            WHERE r.id = auth.uid() AND r.role = 'admin'
-        )
-    );
-
--- Update users
-DROP POLICY IF EXISTS "Users can update their own data" ON users;
-
-CREATE POLICY "Admin or self can update users"
-    ON users FOR UPDATE
-    USING (
-        auth.uid() = id
         OR EXISTS (
             SELECT 1 FROM public_user_roles r
             WHERE r.id = auth.uid() AND r.role = 'admin'
